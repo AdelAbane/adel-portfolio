@@ -6,8 +6,194 @@ interface Props {
 }
 
 const { t } = Astro.props;
+const locale = Astro.currentLocale ?? 'en';
+
+const links = [
+  { href: '#about', label: t.header.nav.about },
+  { href: '#projects', label: t.header.nav.projects },
+  { href: '#quests', label: t.header.nav.quests },
+  { href: '#contact', label: t.header.nav.contact },
+];
+
+const languages = [
+  { code: 'en', label: 'EN', href: '/' },
+  { code: 'fr', label: 'FR', href: '/fr' },
+];
+const otherLanguage = languages.find((lang) => lang.code !== locale)!;
 ---
 
-<section id="header">
-  <h2>{t.header.title}</h2>
-</section>
+<header class="site-header">
+  <div class="inner">
+    <a class="logo" href="#top">adel<span class="dot">.</span></a>
+
+    <div class="controls">
+      <nav aria-label={t.header.navLabel}>
+        <ul class="links">
+          {links.map((link) => (
+            <li>
+              <a href={link.href}>{link.label}</a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <a class="lang" href={otherLanguage.href} hreflang={otherLanguage.code} aria-label={t.header.switchLanguage}>
+        {languages.map((lang) => (
+          <span class:list={{ current: lang.code === locale }} aria-hidden="true">
+            {lang.label}
+          </span>
+        ))}
+      </a>
+
+      <button
+        type="button"
+        class="theme-toggle"
+        aria-label={t.header.themeToLight}
+        data-label-to-light={t.header.themeToLight}
+        data-label-to-dark={t.header.themeToDark}
+      >
+        <svg class="icon-sun" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+        </svg>
+        <svg class="icon-moon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<script>
+  const button = document.querySelector<HTMLButtonElement>('.theme-toggle');
+  const root = document.documentElement;
+
+  // No data-theme attribute means the default (dark) theme
+  const currentTheme = () => (root.dataset.theme === 'light' ? 'light' : 'dark');
+
+  const updateLabel = () => {
+    if (!button) return;
+    const label = currentTheme() === 'dark' ? button.dataset.labelToLight : button.dataset.labelToDark;
+    if (label) button.setAttribute('aria-label', label);
+  };
+
+  button?.addEventListener('click', () => {
+    const next = currentTheme() === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try {
+      localStorage.setItem('theme', next);
+    } catch {}
+    updateLabel();
+  });
+
+  // The server renders the dark-theme label; correct it if Base.astro restored light
+  updateLabel();
+</script>
+
+<style>
+  .inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px 24px;
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .dot {
+    color: var(--accent);
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px 24px;
+  }
+
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .links a {
+    color: var(--muted);
+    font-size: 15px;
+    text-decoration: none;
+  }
+
+  .links a:hover {
+    color: var(--text);
+  }
+
+  .lang {
+    display: flex;
+    padding: 3px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    text-decoration: none;
+  }
+
+  .lang:hover {
+    border-color: var(--accent);
+  }
+
+  .lang span {
+    padding: 4px 10px;
+    border-radius: 999px;
+    color: var(--muted);
+  }
+
+  .lang .current {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+
+  .theme-toggle {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  /* Sun in dark mode (click → light), moon in light mode (click → dark) */
+  .icon-moon {
+    display: none;
+  }
+
+  :global([data-theme='light']) .icon-sun {
+    display: none;
+  }
+
+  :global([data-theme='light']) .icon-moon {
+    display: block;
+  }
+
+  a:focus-visible,
+  .theme-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+</style>

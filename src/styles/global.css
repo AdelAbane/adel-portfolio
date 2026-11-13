@@ -19,14 +19,14 @@
 
 /* Light theme */
 [data-theme="light"] {
-  --bg: #EAF5FF;
-  --surface: #FFFFFF;
-  --surface2: #D3E9FF;
-  --border: #B9D6F2;
+  --bg: #CFE8FF;
+  --surface: #EAF5FF;
+  --surface2: #B8DBFA;
+  --border: #9CC8EE;
   --text: #0A1A33;
-  --muted: #3A4F70;
-  --faint: #4D6285;
-  --accent: #0A62D0;
+  --muted: #2E4466;
+  --faint: #3F5578;
+  --accent: #0A56B8;
   --on-accent: #FFFFFF;
 
   color-scheme: light;
@@ -55,6 +55,15 @@ h3 {
 code,
 pre {
   font-family: var(--font-mono);
+}
+
+/* Smooth color change when the theme toggles (disabled by the reduced-motion rule below) */
+body,
+body * {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
 }
 
 @media (prefers-reduced-motion: reduce) {

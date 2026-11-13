@@ -3,11 +3,34 @@
     "title": "Adel — Portfolio",
     "description": "Personal portfolio of Adel."
   },
-  "header": { "title": "Header" },
-  "hero": { "title": "Hero" },
-  "about": { "title": "About" },
-  "projects": { "title": "Projects" },
-  "experience": { "title": "Experience" },
-  "sideQuests": { "title": "Side Quests" },
-  "contact": { "title": "Contact" }
+  "header": {
+    "navLabel": "Main",
+    "nav": {
+      "about": "About",
+      "projects": "Projects",
+      "quests": "Side quests",
+      "contact": "Contact"
+    },
+    "switchLanguage": "Switch to French",
+    "themeToLight": "Switch to light theme",
+    "themeToDark": "Switch to dark theme"
+  },
+  "hero": {
+    "title": "Hero"
+  },
+  "about": {
+    "title": "About"
+  },
+  "projects": {
+    "title": "Projects"
+  },
+  "experience": {
+    "title": "Experience"
+  },
+  "sideQuests": {
+    "title": "Side Quests"
+  },
+  "contact": {
+    "title": "Contact"
+  }
 }
