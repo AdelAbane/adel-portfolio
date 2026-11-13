@@ -24,7 +24,7 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
 
 <header class="site-header">
   <div class="inner">
-    <a class="logo" href="#top"><span class="dot">.</span>adel</a>
+    <a class="logo" href="#top"><span class="dot" aria-hidden="true"></span>adel</a>
 
     <nav aria-label={t.header.navLabel}>
       <ul class="links">
@@ -60,8 +60,27 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
         </svg>
       </button>
+
+      <button type="button" class="menu-toggle" aria-expanded="false" aria-controls="arcade-menu">
+        {t.header.menu}
+      </button>
     </div>
   </div>
+
+  <!-- Phones: full-screen arcade menu (a modal dialog keeps focus inside and closes on Escape) -->
+  <dialog id="arcade-menu" class="arcade-menu" aria-label={t.header.navLabel}>
+    <button type="button" class="menu-close"><span aria-hidden="true">✕</span> {t.header.close}</button>
+    <ul class="menu-links">
+      {links.map((link, i) => (
+        <li>
+          <a href={link.href} autofocus={i === 0}>
+            <span class="menu-cursor" aria-hidden="true">▶</span>
+            {link.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </dialog>
 </header>
 
 <script>
@@ -88,6 +107,51 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
 
   // The server renders the dark-theme label; correct it if Base.astro restored light
   updateLabel();
+
+  // Phone menu: open/close the arcade menu, keep aria-expanded in sync and lock the page scroll
+  const menuToggle = document.querySelector<HTMLButtonElement>('.menu-toggle');
+  const menu = document.querySelector<HTMLDialogElement>('#arcade-menu');
+
+  if (menuToggle && menu) {
+    menuToggle.addEventListener('click', () => {
+      menu.showModal();
+      menuToggle.setAttribute('aria-expanded', 'true');
+      root.classList.add('menu-open');
+    });
+
+    // Fires for every way of closing: ✕, an item, Escape
+    menu.addEventListener('close', () => {
+      menuToggle.setAttribute('aria-expanded', 'false');
+      root.classList.remove('menu-open');
+    });
+
+    menu.querySelector('.menu-close')?.addEventListener('click', () => menu.close());
+
+    // Trap focus: Tab past the last item wraps to the first one and back
+    menu.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab') return;
+      const focusable = [...menu.querySelectorAll<HTMLElement>('button, a')];
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
+
+    // Close first, so the page is scrollable again when the link jumps to its section
+    for (const link of menu.querySelectorAll('a')) {
+      link.addEventListener('click', () => menu.close());
+    }
+
+    // The menu only exists on phones: close it if the screen grows past the breakpoint
+    window.matchMedia('(min-width: 640px)').addEventListener('change', (e) => {
+      if (e.matches && menu.open) menu.close();
+    });
+  }
 
   // Mark the nav link of the section currently in the middle of the screen as active
   const navLinks = [...document.querySelectorAll<HTMLAnchorElement>('.site-header .links a')];
@@ -129,8 +193,13 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
     text-decoration: none;
   }
 
+  /* A square pixel block in place of the period: inline-block with no content sits on the baseline */
   .dot {
-    color: var(--accent);
+    display: inline-block;
+    width: 0.22em;
+    height: 0.22em;
+    margin-right: 0.08em;
+    background: var(--accent);
   }
 
   .links {
@@ -225,13 +294,133 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
     display: block;
   }
 
+  /* Same box as the theme toggle; only shown on phones (with JS) */
+  .menu-toggle {
+    display: none;
+    place-items: center;
+    min-width: 44px;
+    height: 44px;
+    padding: 0 10px;
+    border: 2px solid var(--border);
+    border-radius: 0;
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--font-pixel);
+    font-size: 10px;
+    cursor: pointer;
+  }
+
+  .menu-toggle:hover {
+    border-color: var(--accent);
+  }
+
+  /* ---------- Arcade menu ---------- */
+
+  .arcade-menu {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    padding: 16px 24px 32px;
+    border: 0;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .arcade-menu[open] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .arcade-menu::backdrop {
+    background: var(--bg);
+  }
+
+  .menu-close {
+    align-self: flex-end;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 2px solid var(--border);
+    border-radius: 0;
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--font-pixel);
+    font-size: 10px;
+    cursor: pointer;
+  }
+
+  .menu-close:hover {
+    border-color: var(--accent);
+  }
+
+  /* Press Start 2P has no ✕, so the fallback glyph needs a bigger size to match */
+  .menu-close span {
+    font-size: 14px;
+  }
+
+  .menu-links {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .menu-links a {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 56px;
+    font-family: var(--font-pixel);
+    font-size: clamp(18px, 6vw, 26px);
+    line-height: 1.3;
+    text-transform: uppercase;
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .menu-links a:hover,
+  .menu-links a:focus {
+    color: var(--accent);
+    outline: none;
+  }
+
+  /* The blinking ▶ cursor marks the focused or hovered item */
+  .menu-cursor {
+    flex: none;
+    color: var(--accent);
+    opacity: 0;
+  }
+
+  .menu-links a:hover .menu-cursor,
+  .menu-links a:focus .menu-cursor {
+    opacity: 1;
+    animation: menu-blink 0.8s steps(1) infinite;
+  }
+
+  @keyframes menu-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+
+  :global(html.menu-open) {
+    overflow: hidden;
+  }
+
   a:focus-visible,
-  .theme-toggle:focus-visible {
+  .theme-toggle:focus-visible,
+  .menu-toggle:focus-visible,
+  .menu-close:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
 
-  /* Phones: logo + tools on the first row, nav box full width underneath */
+  /* Small screens: logo + tools on the first row, nav box full width underneath */
   @media (max-width: 720px) {
     nav {
       order: 3;
@@ -245,6 +434,29 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
     .links a {
       padding: 0 6px;
       font-size: 13px;
+    }
+  }
+
+  /* Phones (with JS): one row, the nav moves into the MENU overlay */
+  @media (max-width: 639px) {
+    .inner {
+      padding: 16px 24px;
+    }
+
+    :global(.js) .inner {
+      flex-wrap: nowrap;
+    }
+
+    .tools {
+      gap: 8px;
+    }
+
+    :global(.js) nav {
+      display: none;
+    }
+
+    :global(.js) .menu-toggle {
+      display: grid;
     }
   }
 </style>

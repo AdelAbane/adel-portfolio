@@ -90,8 +90,8 @@ const toriCarry = [
   '.SS......SS.',
 ];
 
-// Uke (opponent): blue gi, dark brown belt, spiky blond hair, looking left
-const uke = { Y: '#E8B23A', S: '#D9A07A', E: '#06101F', G: '#2B6CDB', D: '#4A2C17', L: '#1A4A9E' };
+// Uke (opponent): blue gi, dark brown belt, spiky black hair, looking left
+const uke = { Y: '#1A1A1A', S: '#D9A07A', E: '#06101F', G: '#2B6CDB', D: '#4A2C17', L: '#1A4A9E' };
 
 const ukeStand = [
   '..Y.Y..Y.Y..',
@@ -139,29 +139,11 @@ const stars = [
   <div class="content">
     <div class="hud" aria-hidden="true">
       <span><span class="hud-accent">{t.hero.hud.player}</span> {t.hero.hud.score}</span>
-      <span>{t.hero.hud.hiScore} <span class="hud-accent">{t.hero.hud.hiScoreName}</span></span>
+      <span class="hud-hiscore">{t.hero.hud.hiScore} <span class="hud-accent">{t.hero.hud.hiScoreName}</span></span>
       <span class="blink">{t.hero.hud.insertCoin}</span>
     </div>
 
-    <div class="intro">
-      <div class="loading" data-loading={JSON.stringify(t.hero.loading.items)}>
-        <ul class="visually-hidden" aria-label={t.hero.loading.srLabel}>
-          {t.hero.loading.items.map((item) => <li>{item}</li>)}
-        </ul>
-        <p class="loading-label" aria-hidden="true">
-          {t.hero.loading.label}<span class="dots"><span>.</span><span>.</span><span>.</span></span>
-        </p>
-        <!-- Shows the first item until the typewriter script takes over -->
-        <p class="loading-line" aria-hidden="true">
-          <span class="loading-text">{t.hero.loading.items[0]}</span><span class="cursor">█</span>
-        </p>
-        <div class="loading-bar" aria-hidden="true">
-          {Array.from({ length: 10 }, () => <span class="segment is-on"></span>)}
-        </div>
-      </div>
-    </div>
-
-    <h1><span class="title"><span class="dot">.</span>{t.hero.title}</span></h1>
+    <h1><span class="title"><span class="dot" aria-hidden="true"></span>{t.hero.title}</span></h1>
 
     <div class="actions">
       <a class="btn btn-primary" href="#about" data-warp>{t.hero.start}</a>
@@ -198,24 +180,13 @@ const stars = [
     </div>
   </div>
 
-  <div class="bands" aria-hidden="true">
-    <div class="band band-back">
-      <div class="track">
-        {Array.from({ length: 8 }, () => <span>{t.hero.bandBack}</span>)}
-      </div>
-    </div>
-    <div class="band band-front">
-      <div class="track">
-        {Array.from({ length: 8 }, () => <span>{t.hero.bandFront}</span>)}
-      </div>
-    </div>
-  </div>
 </section>
 
 <style>
   .hero {
     position: relative;
     overflow: hidden;
+    padding-bottom: 48px;
   }
 
   p,
@@ -223,12 +194,12 @@ const stars = [
     margin: 0;
   }
 
-  /* CRT scanlines over the whole hero */
+  /* CRT scanlines on the background only: above the stars, below the content and the strip */
   .hero::after {
     content: '';
     position: absolute;
     inset: 0;
-    z-index: 3;
+    z-index: 0;
     background: repeating-linear-gradient(to bottom, transparent 0 2px, var(--scanline) 2px 4px);
     pointer-events: none;
   }
@@ -266,15 +237,13 @@ const stars = [
 
   .hud {
     display: flex;
-    flex-wrap: wrap;
     justify-content: space-between;
-    gap: 12px 24px;
-    padding: 14px 0;
-    border-top: 2px dashed var(--border);
-    border-bottom: 2px dashed var(--border);
+    gap: 16px;
+    padding: 8px 0;
     font-family: var(--font-pixel);
     font-size: 11px;
     line-height: 1.6;
+    white-space: nowrap;
     color: var(--text);
   }
 
@@ -286,108 +255,8 @@ const stars = [
     animation: blink 1s steps(1) infinite;
   }
 
-  .visually-hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    padding: 0;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-    border: 0;
-  }
-
-  /* "Now loading" card row: sits on the right, between the HUD and the title */
-  .intro {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 32px;
-  }
-
-  .loading {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 280px;
-    padding: 14px 16px 16px;
-    border: 2px solid var(--border);
-    background: var(--surface);
-    box-shadow: 4px 4px 0 var(--accent);
-  }
-
-  .loading-label {
-    font-family: var(--font-pixel);
-    font-size: 9px;
-    line-height: 1;
-    color: var(--faint);
-  }
-
-  /* The dots appear one by one, then all reset */
-  .dots span {
-    opacity: 0;
-    animation: 1.6s steps(1, end) infinite;
-  }
-
-  .dots span:nth-child(1) {
-    animation-name: dot-1;
-  }
-
-  .dots span:nth-child(2) {
-    animation-name: dot-2;
-  }
-
-  .dots span:nth-child(3) {
-    animation-name: dot-3;
-  }
-
-  /* Room for two lines, so the longest items don't make the card jump */
-  .loading-line {
-    min-height: 3em;
-    font-family: var(--font-mono);
-    font-size: 14px;
-    line-height: 1.5;
-    color: var(--text);
-  }
-
-  .cursor {
-    margin-left: 2px;
-    color: var(--accent);
-    animation: blink 1s steps(1) infinite;
-  }
-
-  .loading-bar {
-    display: grid;
-    grid-template-columns: repeat(10, 1fr);
-    gap: 4px;
-  }
-
-  .segment {
-    position: relative;
-    aspect-ratio: 1;
-    border: 2px solid var(--border);
-  }
-
-  .segment::after {
-    content: '';
-    position: absolute;
-    inset: 2px;
-    background: var(--accent);
-    opacity: 0;
-  }
-
-  .segment.is-on::after {
-    opacity: 1;
-  }
-
-  @media (max-width: 640px) {
-    .loading {
-      width: 100%;
-    }
-  }
-
   h1 {
-    margin-top: 24px;
+    margin-top: 40px;
     overflow: hidden;
     font-weight: 800;
     /* ".ADEL" is ~3.55em wide: cap the size so it always fits the content width on one line */
@@ -402,8 +271,13 @@ const stars = [
     animation: slide-up 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
+  /* A square pixel block in place of the period: inline-block with no content sits on the baseline */
   .dot {
-    color: var(--accent);
+    display: inline-block;
+    width: 0.22em;
+    height: 0.22em;
+    margin-right: 0.08em;
+    background: var(--accent);
   }
 
   .actions {
@@ -600,6 +474,45 @@ const stars = [
     }
   }
 
+  /*
+   * Phones: the hero fills about one screen below the one-row header (~76px). HUD, title and
+   * buttons are spread evenly, and the fight sits right under the buttons.
+   */
+  @media (max-width: 639px) {
+    .hero {
+      display: flex;
+      flex-direction: column;
+      min-height: min(calc(100svh - 76px), 640px);
+      padding-bottom: 24px;
+    }
+
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-evenly;
+      gap: 24px;
+      padding-top: 0;
+    }
+
+    .hud {
+      font-size: 9px;
+    }
+
+    .hud-hiscore {
+      display: none;
+    }
+
+    h1,
+    .actions {
+      margin-top: 0;
+    }
+
+    .strip {
+      margin-top: 8px;
+    }
+  }
+
   /* A row of 24px pixel blocks */
   .ground {
     position: absolute;
@@ -610,56 +523,6 @@ const stars = [
     background:
       linear-gradient(to bottom, var(--border) 0 4px, transparent 4px),
       repeating-linear-gradient(to right, var(--surface2) 0 22px, var(--border) 22px 24px);
-  }
-
-  /* ---------- Marquee bands ---------- */
-
-  .bands {
-    position: relative;
-    z-index: 1;
-    padding: 40px 0 64px;
-  }
-
-  .band {
-    width: 120%;
-    margin-left: -10%;
-    overflow: hidden;
-  }
-
-  .band-back {
-    transform: rotate(-2.5deg);
-    background: var(--surface2);
-    color: var(--text);
-    font-family: var(--font-mono);
-    font-size: 15px;
-    padding: 14px 0;
-  }
-
-  .band-front {
-    position: relative;
-    margin-top: -6px;
-    transform: rotate(1.5deg);
-    background: var(--accent);
-    color: var(--on-accent);
-    font-family: var(--font-display);
-    font-weight: 800;
-    font-size: 20px;
-    padding: 14px 0;
-  }
-
-  .track {
-    display: flex;
-    width: max-content;
-    animation: marquee 40s linear infinite;
-  }
-
-  .band-back .track {
-    animation-direction: reverse;
-  }
-
-  .track span {
-    padding-right: 0.6em;
-    white-space: nowrap;
   }
 
   /* ---------- Keyframes (transform and opacity only) ---------- */
@@ -673,27 +536,6 @@ const stars = [
   @keyframes blink {
     50% {
       opacity: 0;
-    }
-  }
-
-  @keyframes dot-1 {
-    25%,
-    100% {
-      opacity: 1;
-    }
-  }
-
-  @keyframes dot-2 {
-    50%,
-    100% {
-      opacity: 1;
-    }
-  }
-
-  @keyframes dot-3 {
-    75%,
-    100% {
-      opacity: 1;
     }
   }
 
@@ -949,23 +791,9 @@ const stars = [
     }
   }
 
-  /* The track holds 8 copies of the text; moving it by half loops seamlessly */
-  @keyframes marquee {
-    to {
-      transform: translateX(-50%);
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
     /* Fall back to the base styles: Tori and Uke standing face to face */
     .stage * {
-      animation: none;
-    }
-
-    /* Static "NOW LOADING..." and cursor; the script leaves the first item in place */
-    .dots span:nth-child(n),
-    .cursor {
-      opacity: 1;
       animation: none;
     }
   }
@@ -1104,53 +932,6 @@ const stars = [
     });
   });
 
-  // "Now loading" card: types each item, holds it, deletes it, then types the next.
-  // The progress bar fills one segment at a time while an item types out.
-  const TYPE_DELAY = 70;
-  const DELETE_DELAY = 35;
-  const HOLD_DELAY = 2000;
-  const NEXT_DELAY = 400;
-
-  const card = document.querySelector<HTMLElement>('[data-loading]');
-  const items: string[] = JSON.parse(card?.dataset.loading ?? '[]');
-  if (card && items.length && !reducedMotion.matches) {
-    const text = card.querySelector<HTMLElement>('.loading-text')!;
-    const segments = [...card.querySelectorAll<HTMLElement>('.segment')];
-
-    // Start from the server-rendered state: first item fully typed, bar full
-    let index = 0;
-    let length = items[0].length;
-    let deleting = true;
-
-    const render = () => {
-      const item = items[index];
-      text.textContent = item.slice(0, length);
-      const filled = deleting ? segments.length : Math.floor((segments.length * length) / item.length);
-      segments.forEach((segment, i) => segment.classList.toggle('is-on', i < filled));
-    };
-
-    const tick = () => {
-      let delay = deleting ? DELETE_DELAY : TYPE_DELAY;
-      if (deleting) {
-        length--;
-        if (length === 0) {
-          deleting = false;
-          index = (index + 1) % items.length;
-          delay = NEXT_DELAY;
-        }
-      } else {
-        length++;
-        if (length === items[index].length) {
-          deleting = true;
-          delay = HOLD_DELAY;
-        }
-      }
-      render();
-      setTimeout(tick, delay);
-    };
-
-    setTimeout(tick, HOLD_DELAY);
-  }
 </script>
 
 <!--

@@ -17,7 +17,7 @@
 
   /* Retro decoration */
   --star: #EAF2FF;
-  --scanline: rgba(0, 0, 0, 0.12);
+  --scanline: rgba(0, 0, 0, 0.06);
   --pixel-shadow: #EAF2FF;
 
   color-scheme: dark;
@@ -36,7 +36,7 @@
   --on-accent: #FFFFFF;
 
   --star: #0A56B8;
-  --scanline: rgba(10, 26, 51, 0.05);
+  --scanline: rgba(10, 26, 51, 0.025);
   --pixel-shadow: #0A1A33;
 
   color-scheme: light;

@@ -21,8 +21,9 @@ const { title, description = '', lang = 'en' } = Astro.props;
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
 
-    <!-- Apply saved theme before first paint to avoid a flash -->
+    <!-- Apply saved theme before first paint to avoid a flash; flag JS so phones can swap the nav for the menu -->
     <script is:inline>
+      document.documentElement.classList.add('js');
       try {
         const theme = localStorage.getItem('theme');
         if (theme === 'light' || theme === 'dark') {

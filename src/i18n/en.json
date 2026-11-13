@@ -13,7 +13,9 @@
     },
     "switchLanguage": "Switch to French",
     "themeToLight": "Switch to light theme",
-    "themeToDark": "Switch to dark theme"
+    "themeToDark": "Switch to dark theme",
+    "menu": "MENU",
+    "close": "CLOSE"
   },
   "hero": {
     "hud": {
@@ -23,22 +25,9 @@
       "hiScoreName": ".ADEL",
       "insertCoin": "INSERT COIN"
     },
-    "loading": {
-      "label": "NOW LOADING",
-      "srLabel": "Currently working on",
-      "items": [
-        "Vault Rot (Roblox game)",
-        "Snowboard runner (Roblox)",
-        "Homelab: NAS + Jellyfin",
-        "AI receptionist for local businesses",
-        "This website"
-      ]
-    },
     "title": "ADEL",
     "start": "▶ START",
-    "contact": "CONTACT",
-    "bandBack": "Roblox · Luau · Python · C# · Linux · Pi-hole · Tailscale · React · SQL · Blender ·",
-    "bandFront": "Developer ✦ Game maker ✦ Judo coach ✦ Soccer player ✦ Homelab nerd ✦"
+    "contact": "CONTACT"
   },
   "about": {
     "title": "About"
