@@ -805,14 +805,21 @@ const stars = [
   const PARTICLES = 30;
   const SPARKS_PER_BURST = 12;
   const SPARK_COLORS = ['#FFFFFF', '#BFE0FF', 'var(--accent)'];
-  // The portal's inner window is 2 × 3 blocks of 32px
-  const WINDOW_WIDTH = 64;
-  const WINDOW_HEIGHT = 96;
+  // The expand starts once the field has filled in (1.8s) and lasts 0.4s
+  const EXPAND_DELAY = 1800;
+  const EXPAND_DURATION = 400;
   // Frame cells [row, column] of the 4 × 5 grid, in build order: around the frame from the bottom
   const FRAME_CELLS = [
     [5, 2], [5, 1], [4, 1], [3, 1], [2, 1], [1, 1], [1, 2],
     [1, 3], [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [5, 3],
   ];
+  // One glow block: 4 × 4 pixels of #1E5FBF with #0F3A80 spots, plus speckles that pulse (opacity only)
+  const BLOCK_SVG =
+    '<svg viewBox="0 0 4 4" width="100%" height="100%" preserveAspectRatio="none" shape-rendering="crispEdges">' +
+    '<path fill="#1E5FBF" d="M0 0h4v4H0z"/>' +
+    '<path fill="#0F3A80" d="M3 0h1v1H3zM0 1h1v1H0zM1 2h1v1H1zM3 3h1v1H3z"/>' +
+    '<g class="warp-speckles"><path fill="#8FD4FF" d="M1 0h1v1H1zM0 3h1v1H0z"/><path fill="#FFFFFF" d="M3 1h1v1H3zM2 2h1v1H2z"/></g>' +
+    '</svg>';
 
   const random = (min: number, max: number) => min + Math.random() * (max - min);
 
@@ -823,13 +830,10 @@ const stars = [
     heading.focus({ preventScroll: true });
   }
 
-  function createPortal(): HTMLElement {
+  function createPortal(): { overlay: HTMLElement; portal: HTMLElement } {
     const overlay = document.createElement('div');
     overlay.className = 'warp';
     overlay.setAttribute('aria-hidden', 'true');
-    // Zoom until the inner window covers the whole viewport
-    const cover = Math.max(window.innerWidth / WINDOW_WIDTH, window.innerHeight / WINDOW_HEIGHT) * 1.15;
-    overlay.style.setProperty('--cover', String(cover));
 
     // 0–0.4s: two bursts of sparks at the bottom center of the portal, 0.15s apart
     const sparks = document.createElement('div');
@@ -863,7 +867,8 @@ const stars = [
       particle.className = 'warp-particle';
       particle.style.cssText = [
         `--angle: ${Math.round(Math.random() * 360)}deg`,
-        `--radius: ${Math.round(random(10, 54))}px`,
+        // A share of the block size, so the swirl fills the window at every breakpoint
+        `--radius: calc(var(--block) * ${random(0.25, 1.35).toFixed(2)})`,
         `--size: ${4 + 2 * Math.floor(Math.random() * 3)}px`,
         `--duration: ${random(0.7, 1.4).toFixed(2)}s`,
         `--delay: ${(-Math.random()).toFixed(2)}s`,
@@ -875,10 +880,12 @@ const stars = [
 
     // 0.4–0.9s: the frame builds block by block
     FRAME_CELLS.forEach(([row, column], i) => {
-      const block = document.createElement('span');
+      const block = document.createElement('div');
       block.className = 'warp-block';
+      block.innerHTML = BLOCK_SVG;
       block.style.cssText = [
-        `grid-area: ${row} / ${column}`,
+        `grid-row: ${row}`,
+        `grid-column: ${column}`,
         `--delay: ${(0.4 + i * 0.03).toFixed(2)}s`,
         `--glow-delay: ${(-Math.random() * 1.6).toFixed(2)}s`,
       ].join(';');
@@ -886,7 +893,7 @@ const stars = [
     });
 
     overlay.append(sparks, portal);
-    return overlay;
+    return { overlay, portal };
   }
 
   document.querySelectorAll<HTMLAnchorElement>('a[data-warp]').forEach((link) => {
@@ -904,8 +911,9 @@ const stars = [
         return;
       }
 
-      const overlay = createPortal();
+      const { overlay, portal } = createPortal();
       let done = false;
+      const jump = () => target.scrollIntoView({ behavior: 'instant', block: 'start' });
       const finish = () => {
         if (done) return;
         done = true;
@@ -913,25 +921,38 @@ const stars = [
         arrive(target, link.hash);
       };
 
-      overlay.addEventListener('animationend', (e) => {
-        if (e.animationName === 'warp-expand') {
-          // The screen is fully covered: jump without a visible scroll, then fade the overlay out
-          target.scrollIntoView({ behavior: 'instant', block: 'start' });
-          overlay.classList.add('is-out');
-        } else if (e.animationName === 'warp-out') {
-          finish();
-        }
+      // Directly on <body>: no transformed ancestor can break position: fixed (iOS Safari)
+      document.body.append(overlay);
+
+      // Zoom until the 2 × 3-block window covers the overlay as it is actually laid out (100dvh on iOS)
+      const block = parseFloat(getComputedStyle(overlay).getPropertyValue('--block'));
+      const { width, height } = overlay.getBoundingClientRect();
+      const cover = Math.max(width / (2 * block), height / (3 * block)) * 1.1;
+
+      const expand = portal.animate([{ transform: 'scale(1)' }, { transform: `scale(${cover})` }], {
+        duration: EXPAND_DURATION,
+        delay: EXPAND_DELAY,
+        easing: 'cubic-bezier(0.55, 0, 1, 0.45)',
+        fill: 'forwards',
       });
+
+      expand.finished.then(() => {
+        // The screen is fully covered: jump without a visible scroll, then fade the overlay out
+        jump();
+        overlay.classList.add('is-out');
+      });
+
+      overlay.addEventListener('animationend', (e) => {
+        if (e.animationName === 'warp-out') finish();
+      });
+
       // Safety net in case animation events never fire
       setTimeout(() => {
-        if (!done) target.scrollIntoView({ behavior: 'instant', block: 'start' });
+        if (!done) jump();
         finish();
       }, 3500);
-
-      document.body.append(overlay);
     });
   });
-
 </script>
 
 <!--
@@ -940,16 +961,25 @@ const stars = [
   expands over the screen 1.8–2.2s (jump to the target) · overlay fades out 2.2–2.6s
 -->
 <style is:global>
+  /* Fully opaque from the first frame; whole-pixel blocks per breakpoint so they line up exactly */
   .warp {
+    --block: 40px;
     position: fixed;
     inset: 0;
     z-index: 100;
+    width: 100%;
+    height: 100dvh;
     display: grid;
     place-items: center;
     overflow: hidden;
-    background: rgba(6, 16, 31, 0.55);
+    background: var(--bg);
     pointer-events: all;
-    animation: warp-in 0.2s ease-out both;
+  }
+
+  @media (min-width: 640px) {
+    .warp {
+      --block: 56px;
+    }
   }
 
   .warp.is-out {
@@ -958,10 +988,10 @@ const stars = [
 
   /* ---------- Spark ignition ---------- */
 
-  /* A zero-size anchor at the bottom center of the portal (which is 160px tall) */
+  /* A zero-size anchor at the bottom center of the portal (5 blocks tall, centered) */
   .warp-sparks {
     position: absolute;
-    top: calc(50% + 80px);
+    top: calc(50% + var(--block) * 2.5);
     left: 50%;
   }
 
@@ -979,39 +1009,40 @@ const stars = [
   .warp-portal {
     position: relative;
     display: grid;
-    grid-template-columns: repeat(4, 32px);
-    grid-template-rows: repeat(5, 32px);
-    animation: warp-expand 0.4s cubic-bezier(0.55, 0, 1, 0.45) 1.8s forwards;
+    grid-template-columns: repeat(4, var(--block));
+    grid-template-rows: repeat(5, var(--block));
+    gap: 0;
   }
 
-  /* One soft glow around the whole frame, faded in as the last blocks appear */
+  /*
+   * Behind the finished frame: one soft glow (the only shadow) and a base-blue backing, so no
+   * sub-pixel seam between blocks can show through while the portal is scaled up
+   */
   .warp-portal::before {
     content: '';
     position: absolute;
     inset: 0;
+    background: #1e5fbf;
     box-shadow: 0 0 28px 6px color-mix(in srgb, var(--accent) 35%, transparent);
     opacity: 0;
     pointer-events: none;
-    animation: warp-fade-in 0.3s ease-out 0.7s forwards;
+    animation: warp-fade-in 0.3s ease-out 0.95s both;
   }
 
-  /* 4 × 4 pixels: #1E5FBF base with #0F3A80 spots; the speckles sit on their own layer so they can pulse */
+  /* Positioned so the blocks and the field paint above the backing */
   .warp-block {
     position: relative;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 4' shape-rendering='crispEdges'%3E%3Cpath fill='%231E5FBF' d='M0 0h4v4H0z'/%3E%3Cpath fill='%230F3A80' d='M3 0h1v1H3zM0 1h1v1H0zM1 2h1v1H1zM3 3h1v1H3z'/%3E%3C/svg%3E")
-      0 0 / 100% 100%;
-    image-rendering: pixelated;
-    transform: scale(0);
-    animation: warp-block-pop 0.1s steps(2, end) var(--delay) forwards;
+    margin: 0;
+    animation: warp-block-pop 0.1s steps(2, end) var(--delay) both;
   }
 
-  .warp-block::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 4' shape-rendering='crispEdges'%3E%3Cpath fill='%238FD4FF' d='M1 0h1v1H1zM0 3h1v1H0z'/%3E%3Cpath fill='%23FFFFFF' d='M3 1h1v1H3zM2 2h1v1H2z'/%3E%3C/svg%3E")
-      0 0 / 100% 100%;
-    image-rendering: pixelated;
+  .warp-block svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .warp-speckles {
     animation: warp-glow 0.8s ease-in-out var(--glow-delay) infinite alternate;
   }
 
@@ -1019,11 +1050,11 @@ const stars = [
 
   .warp-field {
     position: relative;
-    grid-area: 2 / 2 / 5 / 4;
+    grid-row: 2 / span 3;
+    grid-column: 2 / span 2;
     overflow: hidden;
     background: #0b0f2e;
-    opacity: 0;
-    animation: warp-fade-in 0.4s ease-out 0.9s forwards;
+    animation: warp-fade-in 0.4s ease-out 0.9s both;
   }
 
   .warp-particle {
@@ -1036,13 +1067,7 @@ const stars = [
     animation: warp-swirl var(--duration) linear var(--delay) infinite;
   }
 
-  /* ---------- Keyframes (transform and opacity only) ---------- */
-
-  @keyframes warp-in {
-    from {
-      opacity: 0;
-    }
-  }
+  /* ---------- Keyframes (transform and opacity only; the expand runs from the script) ---------- */
 
   @keyframes warp-out {
     to {
@@ -1051,6 +1076,9 @@ const stars = [
   }
 
   @keyframes warp-fade-in {
+    from {
+      opacity: 0;
+    }
     to {
       opacity: 1;
     }
@@ -1067,7 +1095,11 @@ const stars = [
     }
   }
 
+  /* Ends exactly at scale(1); with fill-mode both it can't stay stuck halfway */
   @keyframes warp-block-pop {
+    from {
+      transform: scale(0);
+    }
     to {
       transform: scale(1);
     }
@@ -1079,15 +1111,6 @@ const stars = [
     }
     to {
       opacity: 1;
-    }
-  }
-
-  @keyframes warp-expand {
-    from {
-      transform: scale(1);
-    }
-    to {
-      transform: scale(var(--cover));
     }
   }
 
