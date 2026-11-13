@@ -1,0 +1,13 @@
+---
+import type { Translations } from '../i18n';
+
+interface Props {
+  t: Translations;
+}
+
+const { t } = Astro.props;
+---
+
+<section id="about">
+  <h2>{t.about.title}</h2>
+</section>

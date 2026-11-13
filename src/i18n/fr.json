@@ -1,0 +1,13 @@
+{
+  "meta": {
+    "title": "Adel — Portfolio",
+    "description": "Portfolio personnel d'Adel."
+  },
+  "header": { "title": "En-tête" },
+  "hero": { "title": "Accueil" },
+  "about": { "title": "À propos" },
+  "projects": { "title": "Projets" },
+  "experience": { "title": "Expérience" },
+  "sideQuests": { "title": "Quêtes annexes" },
+  "contact": { "title": "Contact" }
+}

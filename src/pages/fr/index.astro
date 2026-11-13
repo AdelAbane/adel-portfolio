@@ -1,0 +1,25 @@
+---
+import Base from '../../layouts/Base.astro';
+import Header from '../../components/Header.astro';
+import Hero from '../../components/Hero.astro';
+import About from '../../components/About.astro';
+import Projects from '../../components/Projects.astro';
+import Experience from '../../components/Experience.astro';
+import SideQuests from '../../components/SideQuests.astro';
+import Contact from '../../components/Contact.astro';
+import { getTranslations } from '../../i18n';
+
+const t = getTranslations(Astro.currentLocale);
+---
+
+<Base title={t.meta.title} description={t.meta.description} lang="fr">
+  <Header t={t} />
+  <main>
+    <Hero t={t} />
+    <About t={t} />
+    <Projects t={t} />
+    <Experience t={t} />
+    <SideQuests t={t} />
+    <Contact t={t} />
+  </main>
+</Base>

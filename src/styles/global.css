@@ -1,0 +1,69 @@
+/* Dark theme (default) */
+:root {
+  --bg: #0A1428;
+  --surface: #111E38;
+  --surface2: #1A2B4F;
+  --border: #22355C;
+  --text: #EAF2FF;
+  --muted: #A9B8D4;
+  --faint: #8A9CC0;
+  --accent: #5CC8FF;
+  --on-accent: #06101F;
+
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  color-scheme: dark;
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --bg: #EAF5FF;
+  --surface: #FFFFFF;
+  --surface2: #D3E9FF;
+  --border: #B9D6F2;
+  --text: #0A1A33;
+  --muted: #3A4F70;
+  --faint: #4D6285;
+  --accent: #0A62D0;
+  --on-accent: #FFFFFF;
+
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.6;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+}
+
+code,
+pre {
+  font-family: var(--font-mono);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
