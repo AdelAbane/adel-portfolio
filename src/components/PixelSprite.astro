@@ -1,0 +1,20 @@
+---
+import { pixelRects } from '../lib/pixels';
+
+interface Props {
+  map: string[];
+  palette: Record<string, string>;
+  /** Size of one pixel, in CSS px */
+  size?: number;
+}
+
+const { map, palette, size = 6 } = Astro.props;
+
+const width = Math.max(...map.map((row) => row.length)) * size;
+const height = map.length * size;
+const rects = pixelRects(map, palette, size);
+---
+
+<svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} shape-rendering="crispEdges" style="display: block">
+  {rects.map((r) => <rect x={r.x} y={r.y} width={r.width} height={r.height} style={`fill: ${r.fill}`} />)}
+</svg>

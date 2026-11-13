@@ -10,9 +10,15 @@
   --accent: #5CC8FF;
   --on-accent: #06101F;
 
-  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-display: 'Unbounded', system-ui, sans-serif;
+  --font-pixel: 'Press Start 2P', ui-monospace, monospace;
   --font-body: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Retro decoration */
+  --star: #EAF2FF;
+  --scanline: rgba(0, 0, 0, 0.12);
+  --pixel-shadow: #EAF2FF;
 
   color-scheme: dark;
 }
@@ -28,6 +34,10 @@
   --faint: #3F5578;
   --accent: #0A56B8;
   --on-accent: #FFFFFF;
+
+  --star: #0A56B8;
+  --scanline: rgba(10, 26, 51, 0.05);
+  --pixel-shadow: #0A1A33;
 
   color-scheme: light;
 }
@@ -71,6 +81,7 @@ body * {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;

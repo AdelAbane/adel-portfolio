@@ -6,9 +6,9 @@
   "header": {
     "navLabel": "Principale",
     "nav": {
+      "work": "Projets",
       "about": "À propos",
-      "projects": "Projets",
-      "quests": "Quêtes annexes",
+      "quests": "Quêtes",
       "contact": "Contact"
     },
     "switchLanguage": "Passer à l'anglais",
@@ -16,7 +16,29 @@
     "themeToDark": "Passer au thème sombre"
   },
   "hero": {
-    "title": "Accueil"
+    "hud": {
+      "player": "1UP",
+      "score": "000000",
+      "hiScore": "HI-SCORE",
+      "hiScoreName": ".ADEL",
+      "insertCoin": "INSÉREZ UNE PIÈCE"
+    },
+    "loading": {
+      "label": "CHARGEMENT",
+      "srLabel": "En cours",
+      "items": [
+        "Vault Rot (jeu Roblox)",
+        "Snowboard runner (Roblox)",
+        "Homelab : NAS + Jellyfin",
+        "Réceptionniste IA pour entreprises locales",
+        "Ce site web"
+      ]
+    },
+    "title": "ADEL",
+    "start": "▶ JOUER",
+    "contact": "CONTACT",
+    "bandBack": "Roblox · Luau · Python · C# · Linux · Pi-hole · Tailscale · React · SQL · Blender ·",
+    "bandFront": "Développeur ✦ Créateur de jeux ✦ Coach de judo ✦ Joueur de soccer ✦ Passionné de homelab ✦"
   },
   "about": {
     "title": "À propos"
