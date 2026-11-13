@@ -815,7 +815,7 @@ const stars = [
   ];
   // One glow block: 4 × 4 pixels of #1E5FBF with #0F3A80 spots, plus speckles that pulse (opacity only)
   const BLOCK_SVG =
-    '<svg viewBox="0 0 4 4" width="100%" height="100%" preserveAspectRatio="none" shape-rendering="crispEdges">' +
+    '<svg viewBox="0 0 4 4" preserveAspectRatio="none" shape-rendering="crispEdges">' +
     '<path fill="#1E5FBF" d="M0 0h4v4H0z"/>' +
     '<path fill="#0F3A80" d="M3 0h1v1H3zM0 1h1v1H0zM1 2h1v1H1zM3 3h1v1H3z"/>' +
     '<g class="warp-speckles"><path fill="#8FD4FF" d="M1 0h1v1H1zM0 3h1v1H0z"/><path fill="#FFFFFF" d="M3 1h1v1H3zM2 2h1v1H2z"/></g>' +
@@ -830,12 +830,8 @@ const stars = [
     heading.focus({ preventScroll: true });
   }
 
-  function createPortal(): { overlay: HTMLElement; portal: HTMLElement } {
-    const overlay = document.createElement('div');
-    overlay.className = 'warp';
-    overlay.setAttribute('aria-hidden', 'true');
-
-    // 0–0.4s: two bursts of sparks at the bottom center of the portal, 0.15s apart
+  // 0–0.4s: two bursts of sparks at the bottom center of the portal, 0.15s apart
+  function createSparks(): HTMLElement {
     const sparks = document.createElement('div');
     sparks.className = 'warp-sparks';
     for (let burst = 0; burst < 2; burst++) {
@@ -855,6 +851,15 @@ const stars = [
         sparks.append(spark);
       }
     }
+    return sparks;
+  }
+
+  function createPortal(): { overlay: HTMLElement; portal: HTMLElement } {
+    const overlay = document.createElement('div');
+    overlay.className = 'warp';
+    overlay.setAttribute('aria-hidden', 'true');
+
+    const sparks = createSparks();
 
     const portal = document.createElement('div');
     portal.className = 'warp-portal';
@@ -896,7 +901,143 @@ const stars = [
     return { overlay, portal };
   }
 
+  /** The CSS portal: the fallback when WebGL or the three.js chunk isn't available */
+  function playCssPortal(target: HTMLElement, hash: string) {
+    const { overlay, portal } = createPortal();
+    let done = false;
+    const jump = () => target.scrollIntoView({ behavior: 'instant', block: 'start' });
+    const finish = () => {
+      if (done) return;
+      done = true;
+      overlay.remove();
+      arrive(target, hash);
+    };
+
+    // Directly on <body>: no transformed ancestor can break position: fixed (iOS Safari)
+    document.body.append(overlay);
+
+    // Zoom until the 2 × 3-block window covers the overlay as it is actually laid out (100dvh on iOS)
+    const block = parseFloat(getComputedStyle(overlay).getPropertyValue('--block'));
+    const { width, height } = overlay.getBoundingClientRect();
+    const cover = Math.max(width / (2 * block), height / (3 * block)) * 1.1;
+
+    const expand = portal.animate([{ transform: 'scale(1)' }, { transform: `scale(${cover})` }], {
+      duration: EXPAND_DURATION,
+      delay: EXPAND_DELAY,
+      easing: 'cubic-bezier(0.55, 0, 1, 0.45)',
+      fill: 'forwards',
+    });
+
+    expand.finished.then(() => {
+      // The screen is fully covered: jump without a visible scroll, then fade the overlay out
+      jump();
+      overlay.classList.add('is-out');
+    });
+
+    overlay.addEventListener('animationend', (e) => {
+      if (e.animationName === 'warp-out') finish();
+    });
+
+    // Safety net in case animation events never fire
+    setTimeout(() => {
+      if (!done) jump();
+      finish();
+    }, 3500);
+  }
+
+  // ---------- Three.js portal: loaded on demand, never on page load ----------
+
+  type ThreePortal = typeof import('../lib/warp-three');
+  let threePortal: Promise<ThreePortal> | undefined;
+  let threeReady = false;
+  let webGL: boolean | undefined;
+
+  const hasWebGL = () => {
+    if (webGL === undefined) {
+      try {
+        const gl = document.createElement('canvas').getContext('webgl2') ?? document.createElement('canvas').getContext('webgl');
+        webGL = !!gl;
+        // Don't keep a context alive just for the check
+        gl?.getExtension('WEBGL_lose_context')?.loseContext();
+      } catch {
+        webGL = false;
+      }
+    }
+    return webGL;
+  };
+
+  /** Starts downloading the three.js chunk (once); a failed download is retried on the next call */
+  function loadThree(): Promise<ThreePortal> {
+    threePortal ??= import('../lib/warp-three').then(
+      (module) => {
+        threeReady = true;
+        return module;
+      },
+      (error) => {
+        threePortal = undefined;
+        throw error;
+      },
+    );
+    return threePortal;
+  }
+
+  const preloadThree = () => {
+    if (!reducedMotion.matches && hasWebGL()) loadThree().catch(() => {});
+  };
+
+  async function playThreePortal(target: HTMLElement, hash: string) {
+    const overlay = document.createElement('div');
+    overlay.className = 'warp warp-3d';
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.append(overlay);
+
+    // Not downloaded yet: play the CSS spark ignition while it finishes loading
+    const showSparks = !threeReady;
+    if (showSparks) overlay.append(createSparks());
+
+    let run: ReturnType<ThreePortal['playPortal']>;
+    try {
+      const { playPortal } = await loadThree();
+      overlay.querySelector('.warp-sparks')?.remove();
+      run = playPortal({ container: overlay, skipSparks: showSparks });
+    } catch {
+      // No WebGL context or no chunk: hand over to the CSS portal (its overlay goes on top first)
+      playCssPortal(target, hash);
+      overlay.remove();
+      return;
+    }
+
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      overlay.remove();
+      arrive(target, hash);
+    };
+    // Safety net: never leave the overlay up, even if the animation loop stalls
+    const safety = setTimeout(() => {
+      run.cancel();
+      target.scrollIntoView({ behavior: 'instant', block: 'start' });
+      finish();
+    }, 6000);
+
+    await run.done;
+    clearTimeout(safety);
+    if (done) return;
+    // The canvas has faded to var(--bg): jump while covered, then fade the overlay out
+    target.scrollIntoView({ behavior: 'instant', block: 'start' });
+    overlay.addEventListener('animationend', (e) => {
+      if (e.animationName === 'warp-out') finish();
+    });
+    overlay.classList.add('is-out');
+  }
+
   document.querySelectorAll<HTMLAnchorElement>('a[data-warp]').forEach((link) => {
+    // Usually downloaded by the time the click lands
+    link.addEventListener('pointerenter', preloadThree);
+    link.addEventListener('touchstart', preloadThree, { passive: true });
+    link.addEventListener('focus', preloadThree);
+
     link.addEventListener('click', (event) => {
       // Let new-tab and other modified clicks through
       if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -911,46 +1052,8 @@ const stars = [
         return;
       }
 
-      const { overlay, portal } = createPortal();
-      let done = false;
-      const jump = () => target.scrollIntoView({ behavior: 'instant', block: 'start' });
-      const finish = () => {
-        if (done) return;
-        done = true;
-        overlay.remove();
-        arrive(target, link.hash);
-      };
-
-      // Directly on <body>: no transformed ancestor can break position: fixed (iOS Safari)
-      document.body.append(overlay);
-
-      // Zoom until the 2 × 3-block window covers the overlay as it is actually laid out (100dvh on iOS)
-      const block = parseFloat(getComputedStyle(overlay).getPropertyValue('--block'));
-      const { width, height } = overlay.getBoundingClientRect();
-      const cover = Math.max(width / (2 * block), height / (3 * block)) * 1.1;
-
-      const expand = portal.animate([{ transform: 'scale(1)' }, { transform: `scale(${cover})` }], {
-        duration: EXPAND_DURATION,
-        delay: EXPAND_DELAY,
-        easing: 'cubic-bezier(0.55, 0, 1, 0.45)',
-        fill: 'forwards',
-      });
-
-      expand.finished.then(() => {
-        // The screen is fully covered: jump without a visible scroll, then fade the overlay out
-        jump();
-        overlay.classList.add('is-out');
-      });
-
-      overlay.addEventListener('animationend', (e) => {
-        if (e.animationName === 'warp-out') finish();
-      });
-
-      // Safety net in case animation events never fire
-      setTimeout(() => {
-        if (!done) jump();
-        finish();
-      }, 3500);
+      if (hasWebGL()) playThreePortal(target, link.hash);
+      else playCssPortal(target, link.hash);
     });
   });
 </script>
@@ -984,6 +1087,10 @@ const stars = [
 
   .warp.is-out {
     animation: warp-out 0.4s ease-out both;
+  }
+
+  .warp-3d.is-out {
+    animation-duration: 0.3s;
   }
 
   /* ---------- Spark ignition ---------- */
@@ -1029,11 +1136,16 @@ const stars = [
     animation: warp-fade-in 0.3s ease-out 0.95s both;
   }
 
-  /* Positioned so the blocks and the field paint above the backing */
+  /*
+   * Positioned so the blocks and the field paint above the backing. The pop-in is opacity only
+   * (no transform, so a block's size can never get stuck), and jump-none reaches full opacity at
+   * the halfway step instead of exactly at the end: an end-of-animation progress that rounds to
+   * just under 1 (what left blocks at scale(0.5) on iOS) still shows the final value.
+   */
   .warp-block {
     position: relative;
     margin: 0;
-    animation: warp-block-pop 0.1s steps(2, end) var(--delay) both;
+    animation: warp-block-pop 0.1s steps(2, jump-none) var(--delay) both;
   }
 
   .warp-block svg {
@@ -1095,13 +1207,12 @@ const stars = [
     }
   }
 
-  /* Ends exactly at scale(1); with fill-mode both it can't stay stuck halfway */
   @keyframes warp-block-pop {
     from {
-      transform: scale(0);
+      opacity: 0;
     }
     to {
-      transform: scale(1);
+      opacity: 1;
     }
   }
 
