@@ -24,6 +24,25 @@ const { title, description = '', lang = 'en' } = Astro.props;
     <!-- Apply saved theme before first paint to avoid a flash; flag JS so phones can swap the nav for the menu -->
     <script is:inline>
       document.documentElement.classList.add('js');
+      // Arrived through the START portal: start covered in the portal's colour, then fade it out
+      // (the page's own scripts listen for 'warp:arrived'; a direct visit has no key)
+      try {
+        const cover = sessionStorage.getItem('warp-arrival');
+        if (cover) {
+          sessionStorage.removeItem('warp-arrival');
+          const root = document.documentElement;
+          root.style.setProperty('--warp-arrival', cover);
+          root.dataset.warpArrival = '';
+          document.addEventListener('DOMContentLoaded', () => {
+            root.classList.add('warp-arrival-out');
+            setTimeout(() => {
+              delete root.dataset.warpArrival;
+              root.classList.remove('warp-arrival-out');
+              document.dispatchEvent(new Event('warp:arrived'));
+            }, 500);
+          });
+        }
+      } catch (e) {}
       try {
         const theme = localStorage.getItem('theme');
         if (theme === 'light' || theme === 'dark') {
@@ -36,7 +55,7 @@ const { title, description = '', lang = 'en' } = Astro.props;
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Press+Start+2P&family=Unbounded:wght@500;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500&family=Barlow+Condensed:ital,wght@0,600;1,800&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Press+Start+2P&family=Unbounded:wght@500;800&display=swap"
     />
   </head>
   <body>

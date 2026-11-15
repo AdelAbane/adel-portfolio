@@ -1,12 +1,15 @@
 ---
 import type { Translations } from '../i18n';
 import PixelSprite from './PixelSprite.astro';
+import { localeBase } from '../i18n';
+import { garageCar } from '../lib/garage';
 
 interface Props {
   t: Translations;
 }
 
 const { t } = Astro.props;
+const aboutHref = `${localeBase(Astro.currentLocale)}about`;
 
 // ---------- Judo pixel art (12 columns × 14 rows at 6px, "." is empty) ----------
 
@@ -146,7 +149,7 @@ const stars = [
     <h1><span class="title"><span class="dot" aria-hidden="true"></span>{t.hero.title}</span></h1>
 
     <div class="actions">
-      <a class="btn btn-primary" href="#about" data-warp>{t.hero.start}</a>
+      <a class="btn btn-primary" href={aboutHref} data-warp data-warp-preload={garageCar.webp}>{t.hero.start}</a>
       <a class="btn btn-secondary" href="#contact">{t.hero.contact}</a>
     </div>
   </div>
@@ -800,7 +803,7 @@ const stars = [
 </style>
 
 <script>
-  // "▶ START" warps to its target through a pixel portal. Without JS it stays a plain #about link.
+  // "▶ START" and the About nav links warp to /about through a pixel portal. Without JS they stay plain links.
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const PARTICLES = 30;
   const SPARKS_PER_BURST = 12;
@@ -823,11 +826,15 @@ const stars = [
 
   const random = (min: number, max: number) => min + Math.random() * (max - min);
 
-  function arrive(target: HTMLElement, hash: string) {
-    history.pushState(null, '', hash);
-    const heading = target.querySelector<HTMLElement>('h1, h2') ?? target;
-    heading.setAttribute('tabindex', '-1');
-    heading.focus({ preventScroll: true });
+  /**
+   * The screen is fully covered: hand over to the next page. Base.astro reads the colour from
+   * sessionStorage, starts that page covered in it and fades it out (a direct visit has no key).
+   */
+  function go(url: string, color: string) {
+    try {
+      sessionStorage.setItem('warp-arrival', color);
+    } catch {}
+    location.assign(url);
   }
 
   // 0–0.4s: two bursts of sparks at the bottom center of the portal, 0.15s apart
@@ -902,15 +909,14 @@ const stars = [
   }
 
   /** The CSS portal: the fallback when WebGL or the three.js chunk isn't available */
-  function playCssPortal(target: HTMLElement, hash: string) {
+  function playCssPortal(url: string) {
     const { overlay, portal } = createPortal();
     let done = false;
-    const jump = () => target.scrollIntoView({ behavior: 'instant', block: 'start' });
+    // At full zoom the screen shows the portal's #1E5FBF backing
     const finish = () => {
       if (done) return;
       done = true;
-      overlay.remove();
-      arrive(target, hash);
+      go(url, '#1E5FBF');
     };
 
     // Directly on <body>: no transformed ancestor can break position: fixed (iOS Safari)
@@ -927,22 +933,10 @@ const stars = [
       easing: 'cubic-bezier(0.55, 0, 1, 0.45)',
       fill: 'forwards',
     });
+    expand.finished.then(finish);
 
-    expand.finished.then(() => {
-      // The screen is fully covered: jump without a visible scroll, then fade the overlay out
-      jump();
-      overlay.classList.add('is-out');
-    });
-
-    overlay.addEventListener('animationend', (e) => {
-      if (e.animationName === 'warp-out') finish();
-    });
-
-    // Safety net in case animation events never fire
-    setTimeout(() => {
-      if (!done) jump();
-      finish();
-    }, 3500);
+    // Safety net in case the animation never finishes
+    setTimeout(finish, 3500);
   }
 
   // ---------- Three.js portal: loaded on demand, never on page load ----------
@@ -985,7 +979,7 @@ const stars = [
     if (!reducedMotion.matches && hasWebGL()) loadThree().catch(() => {});
   };
 
-  async function playThreePortal(target: HTMLElement, hash: string) {
+  async function playThreePortal(url: string) {
     const overlay = document.createElement('div');
     overlay.className = 'warp warp-3d';
     overlay.setAttribute('aria-hidden', 'true');
@@ -1002,35 +996,23 @@ const stars = [
       run = playPortal({ container: overlay, skipSparks: showSparks });
     } catch {
       // No WebGL context or no chunk: hand over to the CSS portal (its overlay goes on top first)
-      playCssPortal(target, hash);
+      playCssPortal(url);
       overlay.remove();
       return;
     }
 
-    let done = false;
-    const finish = () => {
-      if (done) return;
-      done = true;
-      overlay.remove();
-      arrive(target, hash);
-    };
     // Safety net: never leave the overlay up, even if the animation loop stalls
-    const safety = setTimeout(() => {
-      run.cancel();
-      target.scrollIntoView({ behavior: 'instant', block: 'start' });
-      finish();
-    }, 6000);
-
+    const safety = setTimeout(() => run.cancel(), 6000);
     await run.done;
     clearTimeout(safety);
-    if (done) return;
-    // The canvas has faded to var(--bg): jump while covered, then fade the overlay out
-    target.scrollIntoView({ behavior: 'instant', block: 'start' });
-    overlay.addEventListener('animationend', (e) => {
-      if (e.animationName === 'warp-out') finish();
-    });
-    overlay.classList.add('is-out');
+    // The canvas has faded to the overlay's background (var(--bg))
+    go(url, getComputedStyle(overlay).backgroundColor);
   }
+
+  // Back from the next page through the bfcache: the old overlay is still up
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) document.querySelectorAll('.warp').forEach((overlay) => overlay.remove());
+  });
 
   document.querySelectorAll<HTMLAnchorElement>('a[data-warp]').forEach((link) => {
     // Usually downloaded by the time the click lands
@@ -1039,21 +1021,17 @@ const stars = [
     link.addEventListener('focus', preloadThree);
 
     link.addEventListener('click', (event) => {
-      // Let new-tab and other modified clicks through
+      // Let new-tab and other modified clicks through; reduced motion just follows the link
       if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      const target = document.querySelector<HTMLElement>(link.hash);
-      if (!target) return;
+      if (reducedMotion.matches) return;
       event.preventDefault();
       if (document.querySelector('.warp')) return;
 
-      if (reducedMotion.matches) {
-        target.scrollIntoView({ behavior: 'smooth' });
-        arrive(target, link.hash);
-        return;
-      }
+      // Fetch the next page's hero image now, so it's cached when the portal lands
+      if (link.dataset.warpPreload) new Image().src = link.dataset.warpPreload;
 
-      if (hasWebGL()) playThreePortal(target, link.hash);
-      else playCssPortal(target, link.hash);
+      if (hasWebGL()) playThreePortal(link.href);
+      else playCssPortal(link.href);
     });
   });
 </script>

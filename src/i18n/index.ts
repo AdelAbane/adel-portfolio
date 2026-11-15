@@ -10,3 +10,8 @@ const translations = { en, fr: fr satisfies Translations };
 export function getTranslations(locale: string | undefined): Translations {
   return translations[locale as Locale] ?? translations.en;
 }
+
+/** Root of a locale's pages: '/' or '/fr/' */
+export function localeBase(locale: string | undefined): string {
+  return locale === 'fr' ? '/fr/' : '/';
+}

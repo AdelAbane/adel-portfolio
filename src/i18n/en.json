@@ -30,7 +30,57 @@
     "contact": "CONTACT"
   },
   "about": {
-    "title": "About"
+    "label": "BAY 02 · ABOUT",
+    "titleLine1": "Engines & software.",
+    "titleLine2": "I like building both.",
+    "toggleOpen": "▲ Open garage",
+    "toggleClose": "▼ Close garage",
+    "bayLabel": "In the bay:",
+    "bayCar": "E46 M3",
+    "bayText": "Naturally aspirated, high-revving, built for people who love to drive. The kind of car you have to understand to get the most out of it.",
+    "carAlt": "Illustration of a blue BMW E46 M3, front view",
+    "carCredit": "Based on a render by @e46gts",
+    "bio": [
+      "I'm a computer science student at Champlain College Saint-Lambert. Whether it's an engine or an app, I want to know how it works: take it apart, figure it out, put it back together better.",
+      "That's how I learned to code, building games, AI chatbots for local businesses and a homelab. Same with go-karts: I buy them, fix them, sell them. If something's broken, I want to know why."
+    ],
+    "specTitle": "Driver spec sheet",
+    "specs": [
+      {
+        "label": "MODEL",
+        "value": "Adel · CS student"
+      },
+      {
+        "label": "ENGINE",
+        "value": "Curiosity, naturally aspirated"
+      },
+      {
+        "label": "DRIVETRAIN",
+        "value": "Learn by building"
+      },
+      {
+        "label": "FUEL",
+        "value": "Games, AI, homelab"
+      },
+      {
+        "label": "HANDLING",
+        "value": "Calm under pressure (judo)"
+      },
+      {
+        "label": "TEAM ORDERS",
+        "value": "Plays for the team (soccer)"
+      },
+      {
+        "label": "LANGUAGES",
+        "value": "English · Français"
+      },
+      {
+        "label": "BUILT IN",
+        "value": "Montréal, QC"
+      }
+    ],
+    "next": "Next stop: projects",
+    "back": "◀ Back to the arcade"
   },
   "projects": {
     "title": "Projects"
@@ -43,5 +93,9 @@
   },
   "contact": {
     "title": "Contact"
+  },
+  "aboutPage": {
+    "title": "About — Adel",
+    "description": "Adel, computer science student at Champlain College Saint-Lambert: engines and software, and building both."
   }
 }

@@ -87,3 +87,23 @@ body * {
     scroll-behavior: auto !important;
   }
 }
+
+/* Arriving through the START portal (see Base.astro): the page starts covered, then fades in */
+html[data-warp-arrival]::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--warp-arrival);
+  pointer-events: none;
+}
+
+html.warp-arrival-out::after {
+  animation: warp-arrival-out 0.5s ease-out forwards;
+}
+
+@keyframes warp-arrival-out {
+  to {
+    opacity: 0;
+  }
+}

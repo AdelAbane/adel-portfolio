@@ -30,7 +30,57 @@
     "contact": "CONTACT"
   },
   "about": {
-    "title": "À propos"
+    "label": "BAIE 02 · À PROPOS",
+    "titleLine1": "Moteurs et logiciels.",
+    "titleLine2": "J'aime construire les deux.",
+    "toggleOpen": "▲ Ouvrir le garage",
+    "toggleClose": "▼ Fermer le garage",
+    "bayLabel": "Dans la baie :",
+    "bayCar": "E46 M3",
+    "bayText": "Atmosphérique, qui monte haut dans les tours, fait pour ceux qui aiment conduire. Le genre de voiture qu'il faut comprendre pour en tirer le meilleur.",
+    "carAlt": "Illustration d'une BMW E46 M3 bleue, vue de face",
+    "carCredit": "D'après un rendu de @e46gts",
+    "bio": [
+      "Je suis étudiant en informatique au Cégep Champlain–Saint-Lambert. Que ce soit un moteur ou une application, je veux comprendre comment ça marche : le démonter, comprendre, le remonter en mieux.",
+      "C'est comme ça que j'ai appris à coder, en créant des jeux, des chatbots IA pour des entreprises locales et un homelab. Pareil pour les go-karts : je les achète, je les répare, je les revends. Si quelque chose est brisé, je veux savoir pourquoi."
+    ],
+    "specTitle": "Fiche technique du pilote",
+    "specs": [
+      {
+        "label": "MODÈLE",
+        "value": "Adel · Étudiant en informatique"
+      },
+      {
+        "label": "MOTEUR",
+        "value": "Curiosité, atmosphérique"
+      },
+      {
+        "label": "TRANSMISSION",
+        "value": "Apprendre en construisant"
+      },
+      {
+        "label": "CARBURANT",
+        "value": "Jeux, IA, homelab"
+      },
+      {
+        "label": "TENUE DE ROUTE",
+        "value": "Calme sous pression (judo)"
+      },
+      {
+        "label": "CONSIGNES D'ÉQUIPE",
+        "value": "Joue pour l'équipe (soccer)"
+      },
+      {
+        "label": "LANGUES",
+        "value": "English · Français"
+      },
+      {
+        "label": "FABRIQUÉ À",
+        "value": "Montréal, QC"
+      }
+    ],
+    "next": "Prochain arrêt : projets",
+    "back": "◀ Retour à l'arcade"
   },
   "projects": {
     "title": "Projets"
@@ -43,5 +93,9 @@
   },
   "contact": {
     "title": "Contact"
+  },
+  "aboutPage": {
+    "title": "À propos — Adel",
+    "description": "Adel, étudiant en informatique au Cégep Champlain–Saint-Lambert : moteurs et logiciels, et le plaisir de construire les deux."
   }
 }

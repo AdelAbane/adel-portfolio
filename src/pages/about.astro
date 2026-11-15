@@ -1,0 +1,15 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import About from '../components/About.astro';
+import { getTranslations } from '../i18n';
+
+const t = getTranslations(Astro.currentLocale);
+---
+
+<Base title={t.aboutPage.title} description={t.aboutPage.description} lang="en">
+  <Header t={t} page="about" />
+  <main>
+    <About t={t} />
+  </main>
+</Base>

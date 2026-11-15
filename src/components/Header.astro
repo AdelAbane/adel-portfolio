@@ -1,36 +1,50 @@
 ---
-import type { Translations } from '../i18n';
+import { localeBase, type Translations } from '../i18n';
+import { garageCar } from '../lib/garage';
 
 interface Props {
   t: Translations;
+  /** Which page the header sits on: section links point back to the homepage from /about */
+  page?: 'home' | 'about';
 }
 
-const { t } = Astro.props;
+const { t, page = 'home' } = Astro.props;
 const locale = Astro.currentLocale ?? 'en';
+const base = localeBase(locale);
+const onAbout = page === 'about';
+const sectionHref = (hash: string) => (onAbout ? `${base}${hash}` : hash);
 
+// About is its own page: from the homepage the link warps there through the portal
 const links = [
-  { href: '#projects', label: t.header.nav.work },
-  { href: '#about', label: t.header.nav.about },
-  { href: '#quests', label: t.header.nav.quests },
-  { href: '#contact', label: t.header.nav.contact },
+  { href: sectionHref('#projects'), label: t.header.nav.work },
+  { href: `${base}about`, label: t.header.nav.about, warp: !onAbout, current: onAbout },
+  { href: sectionHref('#quests'), label: t.header.nav.quests },
+  { href: sectionHref('#contact'), label: t.header.nav.contact },
 ];
 
 const languages = [
-  { code: 'en', label: 'EN', href: '/' },
-  { code: 'fr', label: 'FR', href: '/fr' },
+  { code: 'en', label: 'EN', href: onAbout ? '/about' : '/' },
+  { code: 'fr', label: 'FR', href: onAbout ? '/fr/about' : '/fr' },
 ];
 const otherLanguage = languages.find((lang) => lang.code !== locale)!;
 ---
 
 <header class="site-header">
   <div class="inner">
-    <a class="logo" href="#top"><span class="dot" aria-hidden="true"></span>adel</a>
+    <a class="logo" href={onAbout ? base : '#top'}><span class="dot" aria-hidden="true"></span>adel</a>
 
     <nav aria-label={t.header.navLabel}>
       <ul class="links">
         {links.map((link) => (
           <li>
-            <a href={link.href}>{link.label}</a>
+            <a
+              href={link.href}
+              data-warp={link.warp ? '' : undefined}
+              data-warp-preload={link.warp ? garageCar.webp : undefined}
+              aria-current={link.current ? 'page' : undefined}
+            >
+              {link.label}
+            </a>
           </li>
         ))}
       </ul>
@@ -73,7 +87,13 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
     <ul class="menu-links">
       {links.map((link, i) => (
         <li>
-          <a href={link.href} autofocus={i === 0}>
+          <a
+            href={link.href}
+            autofocus={i === 0}
+            data-warp={link.warp ? '' : undefined}
+            data-warp-preload={link.warp ? garageCar.webp : undefined}
+            aria-current={link.current ? 'page' : undefined}
+          >
             <span class="menu-cursor" aria-hidden="true">▶</span>
             {link.label}
           </a>
@@ -154,7 +174,7 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
   }
 
   // Mark the nav link of the section currently in the middle of the screen as active
-  const navLinks = [...document.querySelectorAll<HTMLAnchorElement>('.site-header .links a')];
+  const navLinks = [...document.querySelectorAll<HTMLAnchorElement>('.site-header .links a[href^="#"]')];
   const observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
