@@ -107,6 +107,12 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
   const button = document.querySelector<HTMLButtonElement>('.theme-toggle');
   const root = document.documentElement;
 
+  // The hero slides up under the floating header, and anchors stop below it: share its height
+  const header = document.querySelector<HTMLElement>('.site-header');
+  if (header) {
+    new ResizeObserver(() => root.style.setProperty('--header-h', `${header.offsetHeight}px`)).observe(header);
+  }
+
   // No data-theme attribute means the default (dark) theme
   const currentTheme = () => (root.dataset.theme === 'light' ? 'light' : 'dark');
 
@@ -194,15 +200,70 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
 </script>
 
 <style>
+  /*
+   * A frosted glass bar floating over the page (the hero's galaxy starts under it). The pixel
+   * touches stay: Press Start 2P on EN/FR and MENU, and the logo's square dot.
+   */
+  .site-header {
+    --glass: rgba(10, 22, 48, 0.45);
+    --glass-border: rgba(190, 224, 255, 0.16);
+    --glass-highlight: rgba(255, 255, 255, 0.18);
+    --glass-fill: rgba(190, 224, 255, 0.06);
+    --glass-hover: rgba(190, 224, 255, 0.12);
+    --glass-active: rgba(190, 224, 255, 0.2);
+    --glass-shadow: rgba(2, 6, 20, 0.55);
+    --glass-blur: blur(18px) saturate(160%);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    padding: 16px 16px 0;
+    /* Only the bar takes clicks, not the gap around it */
+    pointer-events: none;
+  }
+
+  :global([data-theme='light']) .site-header {
+    --glass: rgba(255, 255, 255, 0.55);
+    --glass-border: rgba(10, 42, 94, 0.12);
+    --glass-highlight: rgba(255, 255, 255, 0.8);
+    --glass-fill: rgba(255, 255, 255, 0.3);
+    --glass-hover: rgba(255, 255, 255, 0.6);
+    --glass-active: rgba(255, 255, 255, 0.9);
+    --glass-shadow: rgba(10, 42, 94, 0.18);
+  }
+
+  /* No backdrop blur: a more opaque bar keeps the text readable */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .site-header {
+      --glass: rgba(10, 22, 48, 0.85);
+    }
+
+    :global([data-theme='light']) .site-header {
+      --glass: rgba(255, 255, 255, 0.85);
+    }
+  }
+
+  .inner,
+  .arcade-menu {
+    background: var(--glass);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+  }
+
   .inner {
-    max-width: 1120px;
+    max-width: 1168px;
     margin: 0 auto;
-    padding: 24px;
+    padding: 10px 12px 10px 24px;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 12px 16px;
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    box-shadow:
+      inset 0 1px 0 var(--glass-highlight),
+      0 12px 32px -12px var(--glass-shadow);
+    pointer-events: auto;
   }
 
   .logo {
@@ -222,16 +283,24 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
     background: var(--accent);
   }
 
-  .links {
-    display: flex;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    border: 2px solid var(--border);
+  /* Glass controls: the nav pill group, EN/FR, the theme and MENU buttons */
+  .links,
+  .lang,
+  .theme-toggle,
+  .menu-toggle,
+  .menu-close {
+    border: 1px solid var(--glass-border);
+    background: var(--glass-fill);
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
   }
 
-  .links li + li {
-    border-left: 2px solid var(--border);
+  .links {
+    display: flex;
+    gap: 2px;
+    margin: 0;
+    padding: 3px;
+    list-style: none;
+    border-radius: 999px;
   }
 
   .links a {
@@ -240,6 +309,7 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
     justify-content: center;
     min-height: 40px;
     padding: 0 16px;
+    border-radius: 999px;
     font-family: var(--font-mono);
     font-size: 14px;
     color: var(--muted);
@@ -247,41 +317,51 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
     white-space: nowrap;
   }
 
-  .links a:hover,
+  .links a:hover {
+    background: var(--glass-hover);
+    color: var(--text);
+  }
+
   .links a[aria-current] {
-    background: var(--surface2);
+    background: var(--glass-active);
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
     color: var(--text);
   }
 
   .tools {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
   }
 
   .lang {
     display: flex;
+    gap: 2px;
     height: 44px;
-    border: 2px solid var(--border);
+    padding: 3px;
+    border-radius: 999px;
     font-family: var(--font-pixel);
-    font-size: 11px;
+    font-size: 10px;
     text-decoration: none;
-  }
-
-  .lang:hover {
-    border-color: var(--accent);
   }
 
   .lang span {
     display: grid;
     place-items: center;
     padding: 0 10px;
+    border-radius: 999px;
     color: var(--muted);
   }
 
+  .lang:hover span:not(.current) {
+    background: var(--glass-hover);
+    color: var(--text);
+  }
+
   .lang .current {
-    background: var(--accent);
-    color: var(--on-accent);
+    background: var(--glass-active);
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+    color: var(--text);
   }
 
   .theme-toggle {
@@ -290,15 +370,15 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
     width: 44px;
     height: 44px;
     padding: 0;
-    border: 2px solid var(--border);
-    border-radius: 0;
-    background: var(--surface);
+    border-radius: 50%;
     color: var(--text);
     cursor: pointer;
   }
 
-  .theme-toggle:hover {
-    border-color: var(--accent);
+  .theme-toggle:hover,
+  .menu-toggle:hover,
+  .menu-close:hover {
+    background: var(--glass-hover);
   }
 
   /* Sun in dark mode (click → light), moon in light mode (click → dark) */
@@ -314,24 +394,18 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
     display: block;
   }
 
-  /* Same box as the theme toggle; only shown on phones (with JS) */
+  /* Only shown on phones (with JS) */
   .menu-toggle {
     display: none;
     place-items: center;
     min-width: 44px;
     height: 44px;
-    padding: 0 10px;
-    border: 2px solid var(--border);
-    border-radius: 0;
-    background: var(--surface);
+    padding: 0 16px;
+    border-radius: 999px;
     color: var(--text);
     font-family: var(--font-pixel);
     font-size: 10px;
     cursor: pointer;
-  }
-
-  .menu-toggle:hover {
-    border-color: var(--accent);
   }
 
   /* ---------- Arcade menu ---------- */
@@ -344,8 +418,8 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
     margin: 0;
     padding: 16px 24px 32px;
     border: 0;
-    background: var(--bg);
     color: var(--text);
+    pointer-events: auto;
   }
 
   .arcade-menu[open] {
@@ -353,25 +427,29 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
     flex-direction: column;
   }
 
+  /* A little denser than the bar: the menu covers the whole page */
+  .arcade-menu {
+    --glass: rgba(10, 22, 48, 0.62);
+  }
+
+  :global([data-theme='light']) .arcade-menu {
+    --glass: rgba(255, 255, 255, 0.7);
+  }
+
+  /* The page shows through, frosted (the dialog itself carries the glass) */
   .arcade-menu::backdrop {
-    background: var(--bg);
+    background: transparent;
   }
 
   .menu-close {
     align-self: flex-end;
     min-height: 44px;
-    padding: 0 12px;
-    border: 2px solid var(--border);
-    border-radius: 0;
-    background: var(--surface);
+    padding: 0 16px;
+    border-radius: 999px;
     color: var(--text);
     font-family: var(--font-pixel);
     font-size: 10px;
     cursor: pointer;
-  }
-
-  .menu-close:hover {
-    border-color: var(--accent);
   }
 
   /* Press Start 2P has no ✕, so the fallback glyph needs a bigger size to match */
@@ -455,12 +533,20 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
       padding: 0 6px;
       font-size: 13px;
     }
+
+    .links {
+      gap: 0;
+    }
   }
 
-  /* Phones (with JS): one row, the nav moves into the MENU overlay */
+  /* Phones (with JS): one row, the nav moves into the MENU overlay; a lighter blur for performance */
   @media (max-width: 639px) {
+    .site-header {
+      --glass-blur: blur(10px) saturate(160%);
+    }
+
     .inner {
-      padding: 16px 24px;
+      padding: 8px 8px 8px 20px;
     }
 
     :global(.js) .inner {

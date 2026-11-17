@@ -23,7 +23,9 @@
       "score": "000000",
       "hiScore": "HI-SCORE",
       "hiScoreName": ".ADEL",
-      "insertCoin": "INSÉREZ UNE PIÈCE"
+      "insertCoin": "INSÉREZ UNE PIÈCE",
+      "highScore": "MEILLEUR SCORE !",
+      "scoreAnnounce": "Score : {score}"
     },
     "title": "ADEL",
     "start": "▶ JOUER",

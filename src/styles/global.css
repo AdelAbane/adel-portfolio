@@ -20,6 +20,9 @@
   --scanline: rgba(0, 0, 0, 0.06);
   --pixel-shadow: #EAF2FF;
 
+  /* Height of the sticky glass header (measured by Header.astro; these are the first-paint guesses) */
+  --header-h: 82px;
+
   color-scheme: dark;
 }
 
@@ -46,6 +49,23 @@
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+@media (max-width: 720px) {
+  :root {
+    --header-h: 134px;
+  }
+}
+
+@media (max-width: 639px) {
+  :root {
+    --header-h: 78px;
+  }
+}
+
+/* Jumping to a section stops below the floating header */
+html {
+  scroll-padding-top: var(--header-h);
 }
 
 body {

@@ -3,6 +3,21 @@ import type { Translations } from '../i18n';
 import PixelSprite from './PixelSprite.astro';
 import { localeBase } from '../i18n';
 import { garageCar } from '../lib/garage';
+import {
+  toriPalette as tori,
+  ukePalette as uke,
+  toriWalkA,
+  toriWalkB,
+  toriRoll,
+  toriEntry,
+  toriLift,
+  toriThrow,
+  toriIppon,
+  ukeStand,
+  ukeBent,
+  ukeThrow,
+  ukeGround,
+} from '../lib/judo';
 
 interface Props {
   t: Translations;
@@ -11,142 +26,109 @@ interface Props {
 const { t } = Astro.props;
 const aboutHref = `${localeBase(Astro.currentLocale)}about`;
 
-// ---------- Judo pixel art (12 columns × 14 rows at 6px, "." is empty) ----------
+// ---------- Judo pixel art (24 × 28 at 4px, see src/lib/judo.ts) ----------
 
-// Tori (me): white gi, black belt, looking right
-const tori = { H: '#2B1A12', S: '#C98E6B', E: '#06101F', W: '#EAF2FF', B: '#1B1B1B', R: 'var(--accent)' };
+const PX = 4;
+const width = (map: string[]) => Math.max(...map.map((row) => row.length));
+// Frames wider than 24 columns (the rotated roll frames) stay centered on the figure
+const centered = (map: string[]) => `left: ${((24 - width(map)) * PX) / 2}px`;
 
-const toriWalkA = [
-  '....HHHH....',
-  '...HHHHHH...',
-  '...HSSSSH...',
-  '...SSESES...',
-  '...SSSSSS...',
-  '....SSSS....',
-  '..WWWRRWWW..',
-  '.SWWWWWWWWS.',
-  '.SWWWWWWWWS.',
-  '..BBBBBBBB..',
-  '..WWWWWWWW..',
-  '..WWW..WWW..',
-  '..WWW..WWW..',
-  '..SS....SS..',
+// Landing dust at F5 of the roll: [dx, dy, size, colour]
+const dust = [
+  [-44, -8, 8, '#9AA3B5'],
+  [-24, -20, 4, '#C9CFDA'],
+  [12, -12, 8, '#C9CFDA'],
+  [32, -20, 4, '#9AA3B5'],
+  [52, -8, 8, '#C9CFDA'],
 ];
 
-// Passing step: legs together, front foot lifted
-const toriWalkB = [
-  ...toriWalkA.slice(0, 11),
-  '...WWWWWW...',
-  '...WWWWWWS..',
-  '...SS.......',
+// Kata-guruma impact: a burst of dust to both sides of the landing point, and 4 white lines
+const impactDust = [
+  [-96, -12, 8, '#9AA3B5'],
+  [-84, -32, 4, '#C9CFDA'],
+  [-72, -8, 8, '#C9CFDA'],
+  [-64, -40, 4, '#9AA3B5'],
+  [-56, -20, 4, '#C9CFDA'],
+  [56, -24, 4, '#C9CFDA'],
+  [64, -40, 4, '#9AA3B5'],
+  [72, -8, 8, '#C9CFDA'],
+  [84, -32, 4, '#C9CFDA'],
+  [96, -12, 8, '#9AA3B5'],
+];
+// Each line is 3 pixels on a diagonal or a row, pointing away from the landing point; [path, dx, dy]
+// (dust and lines start out past the edges of his body, then fly further out)
+const impactLines = [
+  ['M0 0h4v4H0zM4 4h4v4H4zM8 8h4v4H8z', -56, -56],
+  ['M0 8h4v4H0zM4 8h4v4H4zM8 8h4v4H8z', -76, -12],
+  ['M0 8h4v4H0zM4 8h4v4H4zM8 8h4v4H8z', 76, -12],
+  ['M0 8h4v4H0zM4 4h4v4H4zM8 0h4v4H8z', 56, -56],
+] as const;
+
+/*
+ * The throw in Uke's coordinates (x from his standing spot, y up from the ground): the center of
+ * each rotation step along the arc over Tori's right shoulder. The first one is also the lift.
+ */
+const throwSteps = [
+  { cx: -8, cy: 104 },
+  { cx: 20, cy: 140 },
+  { cx: 48, cy: 112 },
+  { cx: 72, cy: 62 },
+];
+const throwFrames = ukeThrow.map((map, i) => ({
+  map,
+  left: throwSteps[i].cx - (width(map) * PX) / 2,
+  bottom: throwSteps[i].cy - (map.length * PX) / 2,
+}));
+
+// ---------- Background: the pixel galaxy (drawn by src/lib/galaxy.ts) ----------
+
+// Parallax depth: each star layer moves up to this many px against the cursor
+const skyLayers = [
+  { name: 'far', depth: 4 },
+  { name: 'mid', depth: 10 },
+  { name: 'near', depth: 18 },
 ];
 
-// Tucked into a ball for the forward roll (12 × 12, rotated around its center)
-const toriBall = [
-  '....WWWW....',
-  '..WWWWWWWW..',
-  '.WWWWWWHHHH.',
-  '.WWWWWHHHHHW',
-  'WWWWWWHSSSHW',
-  'BBBBBBSSSSBB',
-  'WWWWWWWSSWWW',
-  'WWSSWWWWWWWW',
-  '.WSSWWWWWWW.',
-  '.WWWWWWWWWW.',
-  '..WWWWWWWW..',
-  '....WWWW....',
-];
-
-// Low stance, hands reaching forward (the roll's tuck/stand-up and the throw entry)
-const toriCrouch = [
-  '............',
-  '............',
-  '............',
-  '.....HHHH...',
-  '....HHHHHH..',
-  '....HSSSSH..',
-  '....SSESES..',
-  '.....SSSS...',
-  '..WWWWRRWWS.',
-  '.WWWWWWWWWSS',
-  '.BBBBBBBB...',
-  'WWWWWWWWWW..',
-  'WWW....WWW..',
-  'SS......SS..',
-];
-
-// Arms up holding Uke on the shoulders, then the victory pose
-const toriCarry = [
-  '....HHHH....',
-  '...HHHHHH...',
-  '.S.HSSSSH.S.',
-  '.W.SSESES.W.',
-  '.W.SSSSSS.W.',
-  '.WW.SSSS.WW.',
-  '..WWWRRWWW..',
-  '..WWWWWWWW..',
-  '..WWWWWWWW..',
-  '..BBBBBBBB..',
-  '..WWWWWWWW..',
-  '.WWW....WWW.',
-  '.WWW....WWW.',
-  '.SS......SS.',
-];
-
-// Uke (opponent): blue gi, dark brown belt, spiky black hair, looking left
-const uke = { Y: '#1A1A1A', S: '#D9A07A', E: '#06101F', G: '#2B6CDB', D: '#4A2C17', L: '#1A4A9E' };
-
-const ukeStand = [
-  '..Y.Y..Y.Y..',
-  '..YYYYYYYY..',
-  '...YSSSSY...',
-  '...SESESS...',
-  '...SSSSSS...',
-  '....SSSS....',
-  '..GGGLLGGG..',
-  '.SGGGGGGGGS.',
-  '.SGGGGGGGGS.',
-  '..DDDDDDDD..',
-  '..GGGGGGGG..',
-  '..GGG..GGG..',
-  '..GGG..GGG..',
-  '..SS....SS..',
-];
-
-// Flat on his back after the throw: head on the left, face up (14 × 4)
-const ukeGround = [
-  'YSE.LGGDGGGG.S',
-  'YSSSGGGDGGGGSS',
-  'YSS.GGGDGGGGS.',
-  '....SS........',
-];
-
-// Across Tori's shoulders: the landing pose upside down, so the 180° throw ends exactly on it
-const ukeLifted = ukeGround.toReversed().map((row) => [...row].reverse().join(''));
-
-// ---------- Background decoration (fixed positions so every render matches) ----------
-
-const stars = [
-  [6, 8], [12, 34], [9, 71], [18, 90], [24, 18], [30, 56], [36, 82], [42, 6],
-  [48, 40], [54, 95], [60, 24], [66, 64], [72, 12], [78, 48], [84, 78], [20, 48],
-].map(([top, left], i) => ({ top, left, delay: (i * 0.37) % 3 }));
+// Reused by the script: the cursor trail and the floating "+100"s
+const TRAIL_POOL = 40;
+const letters = [...t.hero.title];
+const POINTS_POOL = 6;
 ---
 
 <section id="top" class="hero">
   <div class="sky" aria-hidden="true">
-    {stars.map((star) => (
-      <span class="star" style={`top: ${star.top}%; left: ${star.left}%; animation-delay: ${star.delay}s`}></span>
-    ))}
+    <canvas class="sky-canvas" width="320" height="180"></canvas>
+    {skyLayers.map((layer) => <canvas class={`sky-layer sky-${layer.name}`} data-depth={layer.depth} width="0" height="0"></canvas>)}
   </div>
 
   <div class="content">
     <div class="hud" aria-hidden="true">
-      <span><span class="hud-accent">{t.hero.hud.player}</span> {t.hero.hud.score}</span>
+      <span><span class="hud-accent">{t.hero.hud.player}</span> <span class="hud-score">{t.hero.hud.score}</span></span>
       <span class="hud-hiscore">{t.hero.hud.hiScore} <span class="hud-accent">{t.hero.hud.hiScoreName}</span></span>
-      <span class="blink">{t.hero.hud.insertCoin}</span>
+      <span class="blink hud-coin" data-high-score={t.hero.hud.highScore}>{t.hero.hud.insertCoin}</span>
     </div>
+    <p class="sr-only" aria-live="polite" data-announce={t.hero.hud.scoreAnnounce}></p>
 
-    <h1><span class="title"><span class="dot" aria-hidden="true"></span>{t.hero.title}</span></h1>
+    <!-- One span per letter for the effects; screen readers get the name once, from the label -->
+    <div class="name">
+      <h1 aria-label={`.${t.hero.title}`}>
+        <span class="title" aria-hidden="true">
+          <span class="dot"></span><span class="letters">
+            {letters.map((letter, i) => <span class="letter" style={`--i: ${i}`}><span class="glyph">{letter}</span></span>)}
+            {['ghost-a', 'ghost-b'].map((ghost) => (
+              <span class={`ghost ${ghost}`}>{letters.map((letter) => <span class="letter"><span class="glyph">{letter}</span></span>)}</span>
+            ))}
+          </span>
+        </span>
+        <span class="sweep" aria-hidden="true"></span>
+      </h1>
+      <!-- Game-menu selection, shown on hover -->
+      <span class="select" aria-hidden="true">
+        <span class="corner corner-tl"></span><span class="corner corner-tr"></span>
+        <span class="corner corner-bl"></span><span class="corner corner-br"></span>
+        <span class="arrow arrow-l">▶</span><span class="arrow arrow-r">◀</span>
+      </span>
+    </div>
 
     <div class="actions">
       <a class="btn btn-primary" href={aboutHref} data-warp data-warp-preload={garageCar.webp}>{t.hero.start}</a>
@@ -157,39 +139,115 @@ const stars = [
   <!-- Judo loop: every pose is stacked and swapped with opacity on one shared 12s timeline -->
   <div class="strip" aria-hidden="true">
     <div class="stage">
-      <div class="ground"></div>
+      <!-- 24px blocks with a top highlight, a bottom/right shadow and a couple of worn ones -->
+      <svg class="ground" width="100%" height="24" shape-rendering="crispEdges">
+        <defs>
+          <pattern id="ground-blocks" width="192" height="24" patternUnits="userSpaceOnUse">
+            <rect class="ground-base" width="192" height="24" />
+            {Array.from({ length: 8 }, (_, i) => (
+              <g transform={`translate(${i * 24} 0)`}>
+                <rect class="ground-light" width="22" height="2" />
+                <rect class="ground-dark" x="22" width="2" height="24" />
+                <rect class="ground-dark" y="22" width="24" height="2" />
+              </g>
+            ))}
+            <!-- A crack in block 3, pebbles in block 6, a chip in block 8 -->
+            <path class="ground-dark" d="M56 4h2v4h2v4h2v2h2v4h-2v-2h-2v-4h-2v-4h-2z" />
+            <path class="ground-dark" d="M126 8h2v2h-2zM134 14h2v2h-2zM130 18h2v2h-2z" />
+            <path class="ground-light" d="M136 12h2v2h-2z" />
+            <path class="ground-dark" d="M172 2h4v2h-2v2h-2z" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="24" fill="url(#ground-blocks)" />
+      </svg>
       <div class="cast">
         <div class="actor tori">
-          <div class="frame t-walk">
-            <PixelSprite map={toriWalkA} palette={tori} />
-            <div class="frame walk-b"><PixelSprite map={toriWalkB} palette={tori} /></div>
+          <svg class="shadow" width="56" height="12" shape-rendering="crispEdges"><path d="M8 0h40v4H8zM0 4h56v4H0zM8 8h40v4H8z" /></svg>
+          <div class="tori-hop">
+            <div class="frame t-walk">
+              <PixelSprite map={toriWalkA} palette={tori} size={PX} />
+              <div class="frame walk-b"><PixelSprite map={toriWalkB} palette={tori} size={PX} /></div>
+            </div>
+            <div class="frame t-stand"><PixelSprite map={toriWalkA} palette={tori} size={PX} /></div>
+            {toriRoll.map((map, i) => (
+              <div class={`frame t-roll-${i + 1}`} style={centered(map)}><PixelSprite map={map} palette={tori} size={PX} /></div>
+            ))}
+            <div class="dust">
+              {dust.map(([dx, dy, size, color]) => <span style={`--dx: ${dx}px; --dy: ${dy}px; --size: ${size}px; background: ${color}`}></span>)}
+            </div>
+            {toriEntry.map((map, i) => <div class={`frame t-entry-${i + 1}`}><PixelSprite map={map} palette={tori} size={PX} /></div>)}
+            {toriLift.map((map, i) => <div class={`frame t-lift-${i + 1}`}><PixelSprite map={map} palette={tori} size={PX} /></div>)}
+            <div class="frame t-throw"><PixelSprite map={toriThrow} palette={tori} size={PX} /></div>
+            <div class="frame t-ippon"><PixelSprite map={toriIppon} palette={tori} size={PX} /></div>
           </div>
-          <div class="frame t-stand"><PixelSprite map={toriWalkA} palette={tori} /></div>
-          <div class="frame t-ball">
-            <div class="roll"><PixelSprite map={toriBall} palette={tori} /></div>
-          </div>
-          <div class="frame t-crouch"><PixelSprite map={toriCrouch} palette={tori} /></div>
-          <div class="frame t-carry"><PixelSprite map={toriCarry} palette={tori} /></div>
         </div>
         <div class="actor uke">
-          <div class="frame u-stand"><PixelSprite map={ukeStand} palette={uke} /></div>
-          <div class="uke-air">
-            <div class="uke-spin"><PixelSprite map={ukeLifted} palette={uke} /></div>
+          <svg class="shadow" width="56" height="12" shape-rendering="crispEdges"><path d="M8 0h40v4H8zM0 4h56v4H0zM8 8h40v4H8z" /></svg>
+          <div class="frame u-stand"><PixelSprite map={ukeStand} palette={uke} size={PX} /></div>
+          <div class="frame u-bent"><PixelSprite map={ukeBent} palette={uke} size={PX} /></div>
+          <!-- Lifted, then thrown in 4 rotation steps; each step stays behind as a fading after-image -->
+          {throwFrames.map(({ map, left, bottom }, i) => (
+            <div class={`frame u-throw u-throw-${i}`} style={`left: ${left}px; bottom: ${bottom}px`}>
+              <PixelSprite map={map} palette={uke} size={PX} />
+            </div>
+          ))}
+          <div class="frame u-ground" style={`left: ${throwSteps[3].cx - (width(ukeGround) * PX) / 2}px`}>
+            <PixelSprite map={ukeGround} palette={uke} size={PX} />
           </div>
-          <div class="frame u-ground"><PixelSprite map={ukeGround} palette={uke} /></div>
           <p class="ippon"><span>IPPON!</span></p>
+        </div>
+        <!-- The landing, in front of both fighters: dust both ways, white lines out from the point of impact -->
+        <div class="actor impact" style={`left: ${throwSteps[3].cx}px`}>
+          {impactDust.map(([dx, dy, size, color]) => <span class="burst" style={`--dx: ${dx}px; --dy: ${dy}px; --size: ${size}px; background: ${color}`}></span>)}
+          {impactLines.map(([d, dx, dy]) => (
+            <svg class="line" style={`--dx: ${dx}px; --dy: ${dy}px`} width="12" height="12" shape-rendering="crispEdges"><path d={d} /></svg>
+          ))}
         </div>
       </div>
     </div>
   </div>
 
+  <div class="fx" aria-hidden="true">
+    {Array.from({ length: TRAIL_POOL }, () => <span class="px"></span>)}
+    {Array.from({ length: POINTS_POOL }, () => <span class="points">+100</span>)}
+  </div>
 </section>
 
 <style>
   .hero {
+    /* Cursor trail colours */
+    --trail-a: #5cc8ff;
+    --trail-b: #bfe0ff;
+    --trail-c: #2b6cdb;
     position: relative;
     overflow: hidden;
+    /* Starts under the floating header, so the galaxy shows through its glass */
+    margin-top: calc(var(--header-h) * -1);
+    padding-top: var(--header-h);
     padding-bottom: 48px;
+  }
+
+  /* The pale blue would vanish on the light sky: darker blues instead */
+  :global([data-theme='light']) .hero {
+    --trail-a: var(--accent);
+    --trail-b: #2b6cdb;
+    --trail-c: #1a4a9e;
+  }
+
+  /* Off screen: every loop in the hero holds still (the script stops its frame loop too) */
+  .hero.is-paused *,
+  .hero.is-paused *::before,
+  .hero.is-paused *::after {
+    animation-play-state: paused;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   p,
@@ -207,32 +265,119 @@ const stars = [
     pointer-events: none;
   }
 
-  /* ---------- Background: stars ---------- */
+  /* ---------- Background: the pixel galaxy ---------- */
 
   .sky {
     position: absolute;
     inset: 0;
+    overflow: hidden;
     pointer-events: none;
   }
 
-  :global([data-theme='light']) .sky {
-    opacity: 0.5;
+  /* Low-resolution canvases scaled up by whole pixels (the script sets their size) */
+  .sky canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    image-rendering: pixelated;
   }
 
-  .star {
+  /* Before the script sizes it (and without JS): no stretched blank canvas */
+  .sky-canvas:not([style]) {
+    display: none;
+  }
+
+  /* Parallax layers: the script moves them against the cursor (whole pixels, short ease) */
+  .sky-layer {
+    transition: transform 0.25s ease-out;
+  }
+
+  /* No hover (touch screens): each layer drifts on its own, one pixel at a time */
+  @media (hover: none) {
+    .sky-layer {
+      animation: drift 24s steps(var(--steps)) infinite;
+    }
+
+    .sky-far {
+      --amp: 4px;
+      --steps: 4;
+    }
+
+    .sky-mid {
+      --amp: 10px;
+      --steps: 10;
+      animation-duration: 18s;
+      animation-direction: reverse;
+    }
+
+    .sky-near {
+      --amp: 18px;
+      --steps: 18;
+      animation-duration: 14s;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sky-layer {
+      animation: none;
+    }
+  }
+
+  /* ---------- Cursor effects (positioned and played by the script, transform and opacity only) ---------- */
+
+  .fx {
     position: absolute;
+    inset: 0;
+    z-index: 2;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .px,
+  .points {
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+  }
+
+  .px {
     width: 4px;
     height: 4px;
-    background: var(--star);
-    opacity: 0.8;
-    animation: twinkle 3s steps(3) infinite;
+    margin: -2px;
+    background: var(--trail-a);
+  }
+
+  .px.is-big {
+    width: 6px;
+    height: 6px;
+    margin: -3px;
+  }
+
+  .px.is-b {
+    background: var(--trail-b);
+  }
+
+  .px.is-c {
+    background: var(--trail-c);
+  }
+
+  .points {
+    font-family: var(--font-pixel);
+    font-size: 12px;
+    line-height: 1;
+    white-space: nowrap;
+    color: var(--accent);
+    text-shadow: 2px 2px 0 var(--bg);
   }
 
   /* ---------- Content ---------- */
 
+  /* Shakes with the strip when Uke lands (the keyframes are with the judo loop) */
   .content {
     position: relative;
     z-index: 1;
+    animation: shake 12s linear infinite;
     max-width: 1120px;
     margin: 0 auto;
     padding: 8px 24px 0;
@@ -258,8 +403,24 @@ const stars = [
     animation: blink 1s steps(1) infinite;
   }
 
+  .hud-coin.is-high {
+    color: var(--accent);
+    animation-duration: 0.5s;
+  }
+
+  /* Hugs the name, so the selection frame sits around the letters */
+  .name {
+    --headroom: 16px;
+    position: relative;
+    width: fit-content;
+    max-width: 100%;
+    margin-top: calc(40px - var(--headroom));
+  }
+
+  /* Clips the slide-up entrance and the scanline sweep; the top padding is room for the jumps */
   h1 {
-    margin-top: 40px;
+    position: relative;
+    padding-top: var(--headroom);
     overflow: hidden;
     font-weight: 800;
     /* ".ADEL" is ~3.55em wide: cap the size so it always fits the content width on one line */
@@ -281,6 +442,165 @@ const stars = [
     height: 0.22em;
     margin-right: 0.08em;
     background: var(--accent);
+    animation: cursor-blink 1.1s steps(1) infinite;
+  }
+
+  .letters {
+    position: relative;
+    display: inline-block;
+    isolation: isolate;
+  }
+
+  /* The script lifts the letter nearest the cursor (and a little, its neighbours) */
+  .letter {
+    display: inline-block;
+    transition:
+      transform 0.1s steps(2),
+      color 0.3s ease;
+  }
+
+  .letter.is-near {
+    color: var(--accent);
+    transform: translateY(-6px);
+    transition: transform 0.1s steps(2);
+  }
+
+  .letter.is-close {
+    transform: translateY(-2px);
+  }
+
+  .glyph {
+    display: inline-block;
+  }
+
+  .name.is-waving .letters > .letter > .glyph {
+    animation: letter-wave 0.3s steps(3, jump-none) calc(var(--i) * 70ms);
+  }
+
+  /* Glitch: two coloured copies behind the letters, shifted for ~180ms */
+  .ghost {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    opacity: 0;
+  }
+
+  .ghost-a {
+    color: #5cc8ff;
+  }
+
+  .ghost-b {
+    color: #2b6cdb;
+  }
+
+  .name.is-glitching .ghost-a {
+    animation: glitch-a 0.18s steps(1, end);
+  }
+
+  .name.is-glitching .ghost-b {
+    animation: glitch-b 0.18s steps(1, end);
+  }
+
+  .name.is-glitching .letters > .letter {
+    animation: glitch-main 0.18s steps(1, end);
+  }
+
+  /* A thin bright band crossing the letters every ~5s (its box is the heading, its bar the top 3px) */
+  .sweep {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    animation: sweep 5s steps(1, end) 1.5s infinite;
+  }
+
+  .sweep::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    right: 0;
+    left: 0;
+    height: 3px;
+    background: var(--accent);
+    opacity: 0.25;
+  }
+
+  /* ---------- Selection frame: 4 pixel corner brackets and blinking arrows ---------- */
+
+  .select {
+    position: absolute;
+    top: calc(var(--headroom) - 8px);
+    right: -8px;
+    bottom: -4px;
+    left: -8px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .name.is-selected .select {
+    opacity: 1;
+  }
+
+  .corner {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border: 0 solid var(--accent);
+  }
+
+  .corner-tl {
+    --from: 6px, 6px;
+    top: 0;
+    left: 0;
+    border-width: 4px 0 0 4px;
+  }
+
+  .corner-tr {
+    --from: -6px, 6px;
+    top: 0;
+    right: 0;
+    border-width: 4px 4px 0 0;
+  }
+
+  .corner-bl {
+    --from: 6px, -6px;
+    bottom: 0;
+    left: 0;
+    border-width: 0 0 4px 4px;
+  }
+
+  .corner-br {
+    --from: -6px, -6px;
+    right: 0;
+    bottom: 0;
+    border-width: 0 4px 4px 0;
+  }
+
+  .name.is-selected .corner {
+    animation: corner-in 0.15s steps(3, jump-none) both;
+  }
+
+  /* In the content gutter (24px), so they never push anything or overflow */
+  .arrow {
+    position: absolute;
+    top: 50%;
+    margin-top: -6px;
+    font-family: var(--font-pixel);
+    font-size: 12px;
+    line-height: 1;
+    color: var(--accent);
+  }
+
+  .arrow-l {
+    left: -14px;
+  }
+
+  .arrow-r {
+    right: -14px;
+  }
+
+  .name.is-selected .arrow {
+    animation: blink 0.6s steps(1) infinite;
   }
 
   .actions {
@@ -332,14 +652,15 @@ const stars = [
 
   /* ---------- Judo strip ---------- */
 
-  /* The stage is laid out at full size and scaled down as a whole on small screens */
+  /* The stage is laid out at full size (4px sprite pixels) and scaled down as a whole on small screens */
   .strip {
     --scale: 1;
     position: relative;
     z-index: 1;
-    height: calc(176px * var(--scale));
-    margin-top: 48px;
+    height: calc(232px * var(--scale));
+    margin-top: 32px;
     overflow: hidden;
+    animation: shake 12s linear infinite;
   }
 
   .stage {
@@ -347,7 +668,7 @@ const stars = [
     bottom: 0;
     left: 0;
     width: calc(100% / var(--scale));
-    height: 176px;
+    height: 232px;
     transform: scale(var(--scale));
     transform-origin: 0 100%;
   }
@@ -381,13 +702,51 @@ const stars = [
     animation-iteration-count: infinite;
   }
 
+  /* Tori in front: lifted Uke lies across his shoulders, behind his head */
   .uke {
+    z-index: 1;
     transform: translateX(65%);
   }
 
   .tori {
-    transform: translateX(calc(65% - 96px));
+    z-index: 2;
+    transform: translateX(calc(65% - 88px));
     animation: tori-move 12s linear infinite;
+  }
+
+  /* A flat pixel ellipse on the ground under each fighter (centered under a 96px sprite) */
+  .shadow {
+    position: absolute;
+    bottom: -6px;
+    left: 20px;
+    display: block;
+    fill: #01040d;
+    opacity: 0.7;
+    transform-origin: 50% 50%;
+  }
+
+  :global([data-theme='light']) .shadow {
+    fill: #0a1a33;
+    opacity: 0.25;
+  }
+
+  .tori .shadow {
+    animation: tori-shadow 12s steps(1, end) infinite;
+  }
+
+  .uke .shadow {
+    animation: uke-shadow 12s steps(1, end) infinite;
+  }
+
+  /* The script flips the walking and standing poses towards the cursor, and makes Tori hop */
+  .tori-hop {
+    position: absolute;
+    inset: 0;
+  }
+
+  .tori.is-facing-left .t-walk,
+  .tori.is-facing-left .t-stand {
+    transform: scaleX(-1);
   }
 
   .t-walk {
@@ -404,20 +763,69 @@ const stars = [
     animation-name: t-stand;
   }
 
-  .t-ball {
-    animation-name: t-ball;
+  .t-roll-1 {
+    animation-name: t-roll-1;
   }
 
-  .roll {
-    animation: roll 12s linear infinite;
+  .t-roll-2 {
+    animation-name: t-roll-2;
   }
 
-  .t-crouch {
-    animation-name: t-crouch;
+  .t-roll-3 {
+    animation-name: t-roll-3;
   }
 
-  .t-carry {
-    animation-name: t-carry;
+  .t-roll-4 {
+    animation-name: t-roll-4;
+  }
+
+  .t-roll-5 {
+    animation-name: t-roll-5;
+  }
+
+  /* A puff of grey pixels at his feet as he comes up (F5) */
+  .dust {
+    position: absolute;
+    bottom: 0;
+    left: 44px;
+  }
+
+  .dust span,
+  .burst {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: var(--size);
+    height: var(--size);
+    opacity: 0;
+  }
+
+  .dust span {
+    animation: dust 12s infinite;
+  }
+
+  .t-entry-1 {
+    animation-name: t-entry-1;
+  }
+
+  .t-entry-2 {
+    animation-name: t-entry-2;
+  }
+
+  .t-lift-1 {
+    animation-name: t-lift-1;
+  }
+
+  .t-lift-2 {
+    animation-name: t-lift-2;
+  }
+
+  .t-throw {
+    animation-name: t-throw;
+  }
+
+  .t-ippon {
+    animation-name: t-ippon;
   }
 
   .u-stand {
@@ -425,30 +833,60 @@ const stars = [
     animation-name: u-stand;
   }
 
-  /* Lifted Uke lies across the top of Tori's head (Uke's layer is drawn over Tori's); the throw pivots on Tori's front hand */
-  .uke-air {
-    position: absolute;
-    bottom: 72px;
-    left: -72px;
-    opacity: 0;
-    animation:
-      uke-air-show 12s steps(1, end) infinite,
-      uke-air-move 12s linear infinite;
+  /* Pulled forward, his arm over Tori's shoulder */
+  .u-bent {
+    left: -12px;
+    animation-name: u-bent;
   }
 
-  .uke-spin {
-    transform-origin: 72px 24px;
-    animation: uke-spin 12s linear infinite;
+  /* Step 0 is also the lift: 12px lower while Tori's knees are still bent */
+  .u-throw-0 {
+    animation-name: u-throw-0, u-lift;
+  }
+
+  .u-throw-1 {
+    animation-name: u-throw-1;
+  }
+
+  .u-throw-2 {
+    animation-name: u-throw-2;
+  }
+
+  .u-throw-3 {
+    animation-name: u-throw-3;
   }
 
   .u-ground {
-    left: 6px;
     animation-name: u-ground;
+  }
+
+  /* Uke's landing spot, above both fighters */
+  .impact {
+    z-index: 3;
+    transform: translateX(65%);
+  }
+
+  .burst {
+    animation: burst 12s infinite;
+  }
+
+  .line {
+    position: absolute;
+    bottom: 8px;
+    left: -6px;
+    display: block;
+    overflow: visible;
+    fill: #fff;
+    stroke: #0a0f1e;
+    stroke-width: 2px;
+    paint-order: stroke;
+    opacity: 0;
+    animation: impact-line 12s infinite;
   }
 
   .ippon {
     position: absolute;
-    bottom: 104px;
+    bottom: 156px;
     left: -110px;
     width: 220px;
     opacity: 0;
@@ -465,27 +903,22 @@ const stars = [
     animation: ippon-pop 12s linear infinite;
   }
 
+  /* 3px sprite pixels */
   @media (max-width: 720px) {
     .strip {
-      --scale: 0.7;
-    }
-  }
-
-  @media (max-width: 420px) {
-    .strip {
-      --scale: 0.55;
+      --scale: 0.75;
     }
   }
 
   /*
-   * Phones: the hero fills about one screen below the one-row header (~76px). HUD, title and
+   * Phones: the hero fills about one screen, the floating header included. HUD, title and
    * buttons are spread evenly, and the fight sits right under the buttons.
    */
   @media (max-width: 639px) {
     .hero {
       display: flex;
       flex-direction: column;
-      min-height: min(calc(100svh - 76px), 640px);
+      min-height: min(100svh, calc(640px + var(--header-h)));
       padding-bottom: 24px;
     }
 
@@ -506,7 +939,10 @@ const stars = [
       display: none;
     }
 
-    h1,
+    .name {
+      margin-top: calc(var(--headroom) * -1);
+    }
+
     .actions {
       margin-top: 0;
     }
@@ -516,23 +952,111 @@ const stars = [
     }
   }
 
-  /* A row of 24px pixel blocks */
+  /* A row of 24px pixel blocks (the SVG pattern above) */
   .ground {
     position: absolute;
     right: 0;
     bottom: 0;
     left: 0;
-    height: 24px;
-    background:
-      linear-gradient(to bottom, var(--border) 0 4px, transparent 4px),
-      repeating-linear-gradient(to right, var(--surface2) 0 22px, var(--border) 22px 24px);
+    display: block;
   }
+
+  .ground-base {
+    fill: var(--surface2);
+  }
+
+  .ground-light {
+    fill: color-mix(in srgb, var(--surface2), #fff 22%);
+  }
+
+  .ground-dark {
+    fill: color-mix(in srgb, var(--surface2), #000 38%);
+  }
+
 
   /* ---------- Keyframes (transform and opacity only) ---------- */
 
-  @keyframes twinkle {
+  /* A slow loop around the layer's resting place */
+  @keyframes drift {
+    25% {
+      transform: translate(var(--amp), calc(var(--amp) / -2));
+    }
     50% {
-      opacity: 0.15;
+      transform: translate(0, calc(var(--amp) * -1));
+    }
+    75% {
+      transform: translate(calc(var(--amp) * -1), calc(var(--amp) / -2));
+    }
+  }
+
+  @keyframes cursor-blink {
+    50% {
+      opacity: 0.2;
+    }
+  }
+
+  @keyframes letter-wave {
+    50% {
+      transform: translateY(-12px);
+    }
+  }
+
+  @keyframes glitch-a {
+    0% {
+      opacity: 1;
+      transform: translateX(-3px);
+    }
+    33% {
+      transform: translateX(3px);
+    }
+    66% {
+      transform: translateX(-2px);
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes glitch-b {
+    0% {
+      opacity: 1;
+      transform: translateX(3px);
+    }
+    33% {
+      transform: translateX(-3px);
+    }
+    66% {
+      transform: translateX(2px);
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes glitch-main {
+    33% {
+      transform: translateX(1px);
+    }
+  }
+
+  /* 0.8s of the 5s cycle: steps down across the heading, then waits off the bottom */
+  @keyframes sweep {
+    0% {
+      transform: translateY(0);
+      animation-timing-function: steps(16, end);
+    }
+    16% {
+      transform: translateY(calc(100% + 3px));
+    }
+    100% {
+      transform: translateY(calc(100% + 3px));
+    }
+  }
+
+  @keyframes corner-in {
+    from {
+      opacity: 0;
+      transform: translate(var(--from));
     }
   }
 
@@ -550,8 +1074,10 @@ const stars = [
 
   /*
    * Judo storyboard (% of 12s):
-   *   0–20 walk in · 20–32 forward roll · 32–42 walk up to Uke · 42–50 grip and crouch
-   *   50–62 kata-guruma lift · 62–72 throw · 72–86 IPPON! · 86–100 fade out
+   *   0–20 walk in · 20–29.6 forward roll (6 frames) · 29.6–42 walk up to Uke · 42–45 grip
+   *   45–51 kata-guruma entry (2 frames) · 51–62 lift (knees bent, then straight)
+   *   62–72 throw: 4 rotation steps of 300ms, each leaving an after-image · 72 impact
+   *   72–86 IPPON! (Tori's fist up from 74.5) · 86–100 fade out
    */
 
   @keyframes cast-fade {
@@ -570,19 +1096,37 @@ const stars = [
 
   @keyframes tori-move {
     0% {
-      transform: translateX(-90px);
+      transform: translateX(-100px);
     }
-    20%,
-    21.5% {
-      transform: translateX(22%);
+    20% {
+      transform: translateX(15%);
     }
-    30%,
-    32% {
-      transform: translateX(calc(22% + 150px));
+    /* The roll: a small step in, then forward along a low arc (F2–F4), and up in place */
+    21.6% {
+      transform: translate(calc(15% + 16px), 0);
+    }
+    23.2% {
+      transform: translate(calc(15% + 64px), -8px);
+    }
+    24.8% {
+      transform: translate(calc(15% + 112px), -4px);
+    }
+    26.4%,
+    29.6% {
+      transform: translate(calc(15% + 144px), 0);
     }
     42%,
+    45% {
+      transform: translate(calc(65% - 88px), 0);
+    }
+    /* The entry: two short drops forward, under Uke */
+    48% {
+      transform: translate(calc(65% - 72px), 0);
+      animation-timing-function: steps(1, end);
+    }
+    51%,
     100% {
-      transform: translateX(calc(65% - 66px));
+      transform: translate(calc(65% - 56px), 0);
     }
   }
 
@@ -593,7 +1137,7 @@ const stars = [
     20% {
       opacity: 0;
     }
-    32% {
+    29.6% {
       opacity: 1;
     }
     42%,
@@ -612,8 +1156,15 @@ const stars = [
     }
   }
 
+  /* Standing twice: F6 of the roll, then in front of Uke */
   @keyframes t-stand {
     0% {
+      opacity: 0;
+    }
+    28% {
+      opacity: 1;
+    }
+    29.6% {
       opacity: 0;
     }
     42% {
@@ -625,60 +1176,175 @@ const stars = [
     }
   }
 
-  @keyframes t-crouch {
+  /* Forward roll, ~1.15s: F1–F5 for 1.6% (0.19s) each, then F6 is t-stand (28–29.6%) */
+  @keyframes t-roll-1 {
     0% {
       opacity: 0;
     }
     20% {
       opacity: 1;
     }
-    21.5% {
+    21.6%,
+    100% {
       opacity: 0;
     }
-    30% {
+  }
+
+  @keyframes t-roll-2 {
+    0% {
+      opacity: 0;
+    }
+    21.6% {
       opacity: 1;
     }
-    32% {
+    23.2%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes t-roll-3 {
+    0% {
+      opacity: 0;
+    }
+    23.2% {
+      opacity: 1;
+    }
+    24.8%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes t-roll-4 {
+    0% {
+      opacity: 0;
+    }
+    24.8% {
+      opacity: 1;
+    }
+    26.4%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes t-roll-5 {
+    0% {
+      opacity: 0;
+    }
+    26.4% {
+      opacity: 1;
+    }
+    28%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes dust {
+    0% {
+      opacity: 0;
+      transform: translate(0, 0);
+      animation-timing-function: steps(1, end);
+    }
+    26.4% {
+      opacity: 1;
+      transform: translate(0, 0);
+      animation-timing-function: steps(4, end);
+    }
+    29.6%,
+    100% {
+      opacity: 0;
+      transform: translate(var(--dx), var(--dy));
+    }
+  }
+
+  /* In the air during the roll: his shadow shrinks */
+  @keyframes tori-shadow {
+    0% {
+      transform: scale(1);
+    }
+    23.2% {
+      transform: scale(0.7);
+    }
+    26.4%,
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  /* Kata-guruma: drop under Uke in 2 frames, lift with the knees bent then straight, pull, win */
+  @keyframes t-entry-1 {
+    0% {
       opacity: 0;
     }
     45% {
       opacity: 1;
     }
-    51.5%,
+    48%,
     100% {
       opacity: 0;
     }
   }
 
-  @keyframes t-ball {
+  @keyframes t-entry-2 {
     0% {
       opacity: 0;
     }
-    21.5% {
+    48% {
       opacity: 1;
     }
-    30%,
+    51%,
     100% {
       opacity: 0;
     }
   }
 
-  @keyframes roll {
-    0%,
-    21.5% {
-      transform: rotate(0deg);
-    }
-    30%,
-    100% {
-      transform: rotate(360deg);
-    }
-  }
-
-  @keyframes t-carry {
+  @keyframes t-lift-1 {
     0% {
       opacity: 0;
     }
-    51.5%,
+    51% {
+      opacity: 1;
+    }
+    55%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes t-lift-2 {
+    0% {
+      opacity: 0;
+    }
+    55% {
+      opacity: 1;
+    }
+    64.5%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes t-throw {
+    0% {
+      opacity: 0;
+    }
+    64.5% {
+      opacity: 1;
+    }
+    74.5%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes t-ippon {
+    0% {
+      opacity: 0;
+    }
+    74.5%,
     100% {
       opacity: 1;
     }
@@ -688,55 +1354,113 @@ const stars = [
     0% {
       opacity: 1;
     }
-    50%,
+    46.5%,
     100% {
       opacity: 0;
     }
   }
 
-  @keyframes uke-air-show {
+  @keyframes u-bent {
     0% {
       opacity: 0;
     }
-    50% {
+    46.5% {
       opacity: 1;
     }
+    51%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /* Step 0 is the lift too: 12px lower until Tori's knees straighten */
+  @keyframes u-lift {
+    0% {
+      transform: translateY(12px);
+    }
+    55%,
+    100% {
+      transform: translateY(0);
+    }
+  }
+
+  /* Each rotation step is Uke for 300ms, then an after-image at 0.4, 0.25 and 0.1; all gone 300ms after the landing */
+  @keyframes u-throw-0 {
+    0% {
+      opacity: 0;
+    }
+    51% {
+      opacity: 1;
+    }
+    64.5% {
+      opacity: 0.4;
+    }
+    67% {
+      opacity: 0.25;
+    }
+    69.5% {
+      opacity: 0.1;
+    }
     72%,
     100% {
       opacity: 0;
     }
   }
 
-  /* Starts on the crouching Tori's head, rises with him, then lands on the far side */
-  @keyframes uke-air-move {
-    0%,
-    50% {
-      transform: translate(0, 6px);
+  @keyframes u-throw-1 {
+    0% {
+      opacity: 0;
     }
-    51.5% {
-      transform: translate(0, 0);
+    64.5% {
+      opacity: 1;
     }
-    62% {
-      transform: translate(0, 0);
-      animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5);
+    67% {
+      opacity: 0.4;
     }
-    72%,
+    69.5% {
+      opacity: 0.25;
+    }
+    72% {
+      opacity: 0.1;
+    }
+    74.5%,
     100% {
-      transform: translate(18px, 48px);
+      opacity: 0;
     }
   }
 
-  @keyframes uke-spin {
+  @keyframes u-throw-2 {
     0% {
-      transform: rotate(0deg);
+      opacity: 0;
     }
-    62% {
-      transform: rotate(0deg);
-      animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5);
+    67% {
+      opacity: 1;
     }
-    72%,
+    69.5% {
+      opacity: 0.4;
+    }
+    72% {
+      opacity: 0.25;
+    }
+    74.5%,
     100% {
-      transform: rotate(180deg);
+      opacity: 0;
+    }
+  }
+
+  @keyframes u-throw-3 {
+    0% {
+      opacity: 0;
+    }
+    69.5% {
+      opacity: 1;
+    }
+    72% {
+      opacity: 0.4;
+    }
+    74.5%,
+    100% {
+      opacity: 0;
     }
   }
 
@@ -747,6 +1471,92 @@ const stars = [
     72%,
     100% {
       opacity: 1;
+    }
+  }
+
+  /* Follows Uke along the arc, small while he's in the air, full size again on landing */
+  @keyframes uke-shadow {
+    0% {
+      transform: translateX(0) scale(1);
+    }
+    46.5% {
+      transform: translateX(-8px) scale(1);
+    }
+    51% {
+      transform: translateX(-56px) scale(0.55);
+    }
+    64.5% {
+      transform: translateX(-28px) scale(0.5);
+    }
+    67% {
+      transform: translateX(0) scale(0.6);
+    }
+    69.5% {
+      transform: translateX(24px) scale(0.8);
+    }
+    72%,
+    100% {
+      transform: translateX(24px) scale(1);
+    }
+  }
+
+  @keyframes burst {
+    0% {
+      opacity: 0;
+      transform: translate(0, 0);
+      animation-timing-function: steps(1, end);
+    }
+    72% {
+      opacity: 1;
+      transform: translate(calc(var(--dx) * 0.7), calc(var(--dy) * 0.7));
+      animation-timing-function: steps(4, end);
+    }
+    75.5%,
+    100% {
+      opacity: 0;
+      transform: translate(calc(var(--dx) * 1.3), calc(var(--dy) * 1.3));
+    }
+  }
+
+  @keyframes impact-line {
+    0% {
+      opacity: 0;
+      transform: translate(0, 0);
+      animation-timing-function: steps(1, end);
+    }
+    72% {
+      opacity: 1;
+      transform: translate(calc(var(--dx) * 0.7), calc(var(--dy) * 0.7));
+      animation-timing-function: steps(2, end);
+    }
+    74.5%,
+    100% {
+      opacity: 0;
+      transform: translate(calc(var(--dx) * 1.3), calc(var(--dy) * 1.3));
+    }
+  }
+
+  /* The landing shakes the hero: ±3px in 3 steps of 50ms */
+  @keyframes shake {
+    0% {
+      transform: translate(0, 0);
+      animation-timing-function: steps(1, end);
+    }
+    72% {
+      transform: translate(3px, 0);
+      animation-timing-function: steps(1, end);
+    }
+    72.42% {
+      transform: translate(-3px, 2px);
+      animation-timing-function: steps(1, end);
+    }
+    72.84% {
+      transform: translate(2px, -2px);
+      animation-timing-function: steps(1, end);
+    }
+    73.25%,
+    100% {
+      transform: translate(0, 0);
     }
   }
 
@@ -796,8 +1606,22 @@ const stars = [
 
   @media (prefers-reduced-motion: reduce) {
     /* Fall back to the base styles: Tori and Uke standing face to face */
-    .stage * {
+    .stage *,
+    .strip,
+    .content {
       animation: none;
+    }
+
+    /* The name stays still; the selection frame still shows on hover, just without animating */
+    .name *,
+    .name *::before {
+      animation: none !important;
+      transition: none;
+    }
+
+    /* The nearest letter only lights up */
+    .letters > .letter {
+      transform: none !important;
     }
   }
 </style>
@@ -1034,6 +1858,435 @@ const stars = [
       else playCssPortal(link.href);
     });
   });
+</script>
+
+<script>
+  import { createGalaxy } from '../lib/galaxy';
+
+  /*
+   * Hero interactivity: the pixel galaxy, a pixel trail behind the cursor, star parallax, Tori
+   * reacting to the cursor, and points for clicking. Pointer events only record state; one requestAnimationFrame
+   * loop does all the work, and only runs while there is something to do and the hero is on screen.
+   */
+  const TRAIL_EVERY = 30;
+  const TRAIL_LIFE = 500;
+  const FACE_EVERY = 150;
+  const POINTS = 100;
+  const BONUS = 500;
+  const TAP_SELECT = 2000;
+  const HIGH_SCORE = 1000;
+  const ANNOUNCE_EVERY = 500;
+  const SCORE_KEY = 'hero-score';
+  // Judo timeline (see the storyboard in the styles): Tori walks 0–20%, rolls 20–29.6% (standing
+  // up from 28%), walks and stands 29.6–45%, goes under Uke and throws him 45–74.5%, then wins
+  const LOOP = 12000;
+  const canTurn = (p: number) => p < 20 || (p >= 28 && p < 45);
+  const canHop = (p: number) => p < 20 || (p >= 29.6 && p < 45) || p >= 74.5;
+
+  const hero = document.querySelector<HTMLElement>('.hero');
+  if (hero) initArcade(hero);
+
+  function initArcade(hero: HTMLElement) {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const layers = [...hero.querySelectorAll<HTMLElement>('.sky-layer')].map((el) => ({
+      el,
+      depth: Number(el.dataset.depth),
+      x: 0,
+      y: 0,
+    }));
+    const trail = [...hero.querySelectorAll<HTMLElement>('.px')].map((el) => ({ el, until: 0, anim: undefined as Animation | undefined }));
+    const floaters = [...hero.querySelectorAll<HTMLElement>('.points')];
+    const tori = hero.querySelector<HTMLElement>('.tori')!;
+    const toriBox = hero.querySelector<HTMLElement>('.t-stand')!;
+    const toriHop = hero.querySelector<HTMLElement>('.tori-hop')!;
+    const toriShadow = hero.querySelector<SVGElement>('.tori .shadow')!;
+    const cast = hero.querySelector<HTMLElement>('.cast')!;
+    const scoreEl = hero.querySelector<HTMLElement>('.hud-score')!;
+    const coinEl = hero.querySelector<HTMLElement>('.hud-coin')!;
+    const announcer = hero.querySelector<HTMLElement>('[data-announce]')!;
+    const name = hero.querySelector<HTMLElement>('.name')!;
+    const nameLetters = [...name.querySelectorAll<HTMLElement>('.letters > .letter')];
+    const dot = name.querySelector<HTMLElement>('.dot')!;
+    const galaxy = createGalaxy({
+      host: hero,
+      sky: hero.querySelector<HTMLCanvasElement>('.sky-canvas')!,
+      starLayers: [...hero.querySelectorAll<HTMLCanvasElement>('.sky-layer')],
+      focus: [name.querySelector('h1')!, hero.querySelector<HTMLElement>('.hud')!],
+    });
+
+    // The cursor, in viewport coordinates; "overUi" while it's on a button or link
+    const pointer = { x: 0, y: 0, inside: false, overUi: false, moved: false };
+    let lastSpawn = 0;
+    let lastFace = 0;
+    let nextTrail = 0;
+    let nextFloater = 0;
+    let facingLeft = false;
+    let overTori = false;
+    let hop: Animation | undefined;
+    let visible = true;
+    let frame = 0;
+    let lastPointerType = 'mouse';
+    let nearLetter = -1;
+    let coin: Animation | undefined;
+    let bonusUsed = false;
+    let waveTimer = 0;
+    let tapTimer = 0;
+    let glitchTimer = 0;
+
+    let score = 0;
+    try {
+      score = Number(sessionStorage.getItem(SCORE_KEY)) || 0;
+    } catch {}
+    let shown = score;
+    renderScore();
+
+    const motion = () => !reducedMotion.matches;
+    const interactive = (target: EventTarget | null) => target instanceof Element && !!target.closest('a, button');
+
+    /** Where the judo loop is, in % (always "anywhere" when the loop is off for reduced motion) */
+    function loopProgress(): number | undefined {
+      const time = cast.getAnimations()[0]?.currentTime;
+      return time == null ? undefined : ((Number(time) % LOOP) / LOOP) * 100;
+    }
+
+    function wake() {
+      if (!frame && visible) frame = requestAnimationFrame(tick);
+    }
+
+    // ---------- Frame loop ----------
+
+    function tick(now: number) {
+      frame = 0;
+      const rect = hero.getBoundingClientRect();
+      const tracking = pointer.inside && finePointer.matches;
+
+      if (tracking && motion() && pointer.moved && !pointer.overUi && now - lastSpawn >= TRAIL_EVERY) {
+        spawnPixel(pointer.x - rect.left, pointer.y - rect.top, now);
+        lastSpawn = now;
+        pointer.moved = false;
+      }
+
+      // The sky animates on its own (30fps), unless motion is reduced or the tab is hidden
+      const skyRunning = motion() && !document.hidden;
+      if (skyRunning) galaxy.frame(now);
+
+      updateParallax(tracking && motion(), rect);
+      updateProximity(tracking && !pointer.overUi && inside(name.getBoundingClientRect(), pointer.x, pointer.y));
+
+      if (now - lastFace >= FACE_EVERY) {
+        lastFace = now;
+        updateTori(tracking);
+      }
+
+      if (shown < score) {
+        // Ticks up through the tens like an arcade counter, faster when far behind
+        shown = Math.min(score, shown + (score - shown > 500 ? 50 : 10));
+        renderScore();
+      }
+
+      // Keep running while the cursor is in the hero or something is still catching up
+      if (skyRunning || pointer.inside || shown < score || facingLeft !== wantsLeft()) wake();
+    }
+
+    // ---------- 1. Pixel trail ----------
+
+    const TRAIL_CLASSES = ['', 'is-b', 'is-c'];
+
+    function spawnPixel(x: number, y: number, now: number) {
+      // Round robin through the pool; if the oldest pixel is still alive, 40 are on screen: skip
+      const pixel = trail[nextTrail];
+      if (pixel.until > now) return;
+      nextTrail = (nextTrail + 1) % trail.length;
+
+      const colour = TRAIL_CLASSES[Math.floor(Math.random() * 3)];
+      pixel.el.className = `px ${colour} ${Math.random() < 0.5 ? 'is-big' : ''}`;
+      // A little scatter, on whole pixels
+      pixel.el.style.translate = `${Math.round(x + (Math.random() - 0.5) * 8)}px ${Math.round(y + (Math.random() - 0.5) * 8)}px`;
+      pixel.anim?.cancel();
+      pixel.anim = pixel.el.animate(
+        [
+          { opacity: 1, transform: 'translateY(0)' },
+          { opacity: 0, transform: 'translateY(8px)' },
+        ],
+        { duration: TRAIL_LIFE, easing: 'steps(4, end)', fill: 'forwards' },
+      );
+      pixel.until = now + TRAIL_LIFE;
+    }
+
+    function clearTrail() {
+      trail.forEach((pixel) => {
+        pixel.anim?.cancel();
+        pixel.anim = undefined;
+        pixel.until = 0;
+      });
+    }
+
+    // ---------- 2. Parallax stars ----------
+
+    function updateParallax(follow: boolean, rect: DOMRect) {
+      // -1…1 from the hero's center; back to rest when the cursor leaves
+      const nx = follow ? Math.max(-1, Math.min(1, (pointer.x - rect.left) / (rect.width / 2) - 1)) : 0;
+      const ny = follow ? Math.max(-1, Math.min(1, (pointer.y - rect.top) / (rect.height / 2) - 1)) : 0;
+      layers.forEach((layer) => {
+        const x = Math.round(-nx * layer.depth);
+        const y = Math.round(-ny * layer.depth);
+        if (x === layer.x && y === layer.y) return;
+        layer.x = x;
+        layer.y = y;
+        layer.el.style.transform = x || y ? `translate(${x}px, ${y}px)` : '';
+      });
+    }
+
+    // ---------- 3. Tori reacts ----------
+
+    function wantsLeft(): boolean {
+      if (!pointer.inside || !finePointer.matches) return false;
+      const box = toriBox.getBoundingClientRect();
+      return pointer.x < box.left + box.width / 2;
+    }
+
+    function updateTori(tracking: boolean) {
+      const left = wantsLeft();
+      const progress = loopProgress();
+      // Only turn while walking or standing, so the roll, the throw and the finish stay as drawn
+      if (left !== facingLeft && (progress === undefined || canTurn(progress))) {
+        facingLeft = left;
+        tori.classList.toggle('is-facing-left', left);
+      }
+
+      // Hovering over him: one hop each time the cursor arrives
+      const over = tracking && !pointer.overUi && isOverTori(pointer.x, pointer.y);
+      if (over && !overTori) hopTori();
+      overTori = over;
+    }
+
+    const inside = (box: DOMRect, x: number, y: number) => x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
+    const isOverTori = (x: number, y: number) => inside(toriBox.getBoundingClientRect(), x, y);
+
+    /** A quick two-frame ready-stance hop, never during the roll or the throw */
+    function hopTori() {
+      const progress = loopProgress();
+      if (!motion() || (progress !== undefined && !canHop(progress))) return;
+      if (hop?.playState === 'running') return;
+      hop = toriHop.animate(
+        [
+          { transform: 'translateY(-12px)', easing: 'steps(1, end)' },
+          { transform: 'translateY(-6px)', offset: 0.5, easing: 'steps(1, end)' },
+          { transform: 'translateY(-6px)' },
+        ],
+        { duration: 240 },
+      );
+      // His shadow shrinks while he's off the ground (scale is separate from the loop's transform)
+      toriShadow.animate([{ scale: '0.75' }, { scale: '0.85', offset: 0.5 }, { scale: '0.85' }], { duration: 240, easing: 'steps(1, end)' });
+    }
+
+    // ---------- 4. The name ----------
+
+    // Idle glitch every 6–10s while the hero is on screen
+    function scheduleGlitch() {
+      clearTimeout(glitchTimer);
+      glitchTimer = window.setTimeout(
+        () => {
+          if (motion()) {
+            name.classList.add('is-glitching');
+            window.setTimeout(() => name.classList.remove('is-glitching'), 200);
+          }
+          scheduleGlitch();
+        },
+        6000 + Math.random() * 4000,
+      );
+    }
+
+    /** Hover (or a tap): the selection frame, a letter wave and the coin dot */
+    function selectName() {
+      name.classList.add('is-selected');
+      if (!motion()) return;
+      // Restart the wave from the first letter
+      name.classList.remove('is-waving');
+      void name.offsetWidth;
+      name.classList.add('is-waving');
+      clearTimeout(waveTimer);
+      waveTimer = window.setTimeout(() => name.classList.remove('is-waving'), 300 + 70 * nameLetters.length);
+
+      if (coin?.playState === 'running') return;
+      // Up, a full turn on its Y axis in 4 frames, and back down
+      coin = dot.animate(
+        [
+          { transform: 'translateY(0) rotateY(0deg)' },
+          { transform: 'translateY(-24px) rotateY(180deg)' },
+          { transform: 'translateY(0) rotateY(360deg)' },
+        ],
+        { duration: 480, easing: 'steps(4, end)' },
+      );
+    }
+
+    function deselectName() {
+      clearTimeout(tapTimer);
+      name.classList.remove('is-selected');
+      updateProximity(false);
+    }
+
+    /** The letter nearest the cursor lifts, its neighbours a little */
+    function updateProximity(over: boolean) {
+      let nearest = -1;
+      if (over) {
+        let best = Infinity;
+        nameLetters.forEach((letter, i) => {
+          const box = letter.getBoundingClientRect();
+          const distance = Math.abs(pointer.x - (box.left + box.width / 2));
+          if (distance < best) {
+            best = distance;
+            nearest = i;
+          }
+        });
+      }
+      if (nearest === nearLetter) return;
+      nearLetter = nearest;
+      nameLetters.forEach((letter, i) => {
+        letter.classList.toggle('is-near', i === nearest);
+        letter.classList.toggle('is-close', nearest >= 0 && Math.abs(i - nearest) === 1);
+      });
+    }
+
+    // ---------- 5. Click for points ----------
+
+    function renderScore() {
+      scoreEl.textContent = String(Math.min(shown, 999999)).padStart(6, '0');
+      if (shown >= HIGH_SCORE && !coinEl.classList.contains('is-high')) {
+        coinEl.textContent = coinEl.dataset.highScore ?? '';
+        coinEl.classList.add('is-high');
+      }
+    }
+
+    function addPoints(x: number, y: number, points: number, label: string) {
+      const before = score;
+      score += points;
+      try {
+        sessionStorage.setItem(SCORE_KEY, String(score));
+      } catch {}
+      if (Math.floor(score / ANNOUNCE_EVERY) > Math.floor(before / ANNOUNCE_EVERY)) {
+        announcer.textContent = (announcer.dataset.announce ?? '').replace('{score}', String(score));
+      }
+
+      if (!motion()) {
+        // No floating "+100" and no count-up: the new score shows straight away
+        shown = score;
+        renderScore();
+        return;
+      }
+
+      const floater = floaters[nextFloater];
+      nextFloater = (nextFloater + 1) % floaters.length;
+      floater.textContent = label;
+      // Keep the wider pops inside the hero
+      const half = (label.length * 12) / 2 + 4;
+      const fitX = Math.max(half, Math.min(hero.clientWidth - half, x));
+      floater.style.translate = `${Math.round(fitX)}px ${Math.round(y)}px`;
+      floater.getAnimations().forEach((anim) => anim.cancel());
+      floater.animate(
+        [
+          { opacity: 1, transform: 'translate(-50%, -50%)' },
+          { opacity: 0, transform: 'translate(-50%, calc(-50% - 30px))' },
+        ],
+        { duration: 600, easing: 'steps(4, end)', fill: 'forwards' },
+      );
+      wake();
+    }
+
+    // ---------- Events ----------
+
+    hero.addEventListener(
+      'pointermove',
+      (event) => {
+        if (event.pointerType === 'touch') return;
+        pointer.inside = true;
+        pointer.overUi = interactive(event.target);
+        if (!pointer.overUi) {
+          pointer.x = event.clientX;
+          pointer.y = event.clientY;
+          pointer.moved = true;
+        }
+        wake();
+      },
+      { passive: true },
+    );
+
+    hero.addEventListener('pointerleave', () => {
+      pointer.inside = false;
+      pointer.moved = false;
+      overTori = false;
+      clearTrail();
+      wake();
+    });
+
+    hero.addEventListener('click', (event) => {
+      // Buttons and links keep their normal job; keyboard "clicks" (detail 0) only come from them anyway
+      if (interactive(event.target) || event.detail === 0) return;
+      const rect = hero.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      if (isOverTori(event.clientX, event.clientY)) hopTori();
+
+      if (event.target instanceof Node && name.contains(event.target)) {
+        // No hover on touch: the tap selects the name for a moment
+        if (lastPointerType !== 'mouse') {
+          selectName();
+          clearTimeout(tapTimer);
+          tapTimer = window.setTimeout(deselectName, TAP_SELECT);
+        }
+        // Once per page visit
+        if (!bonusUsed) {
+          bonusUsed = true;
+          addPoints(x, y, BONUS, `+${BONUS} BONUS`);
+          return;
+        }
+      }
+      addPoints(x, y, POINTS, `+${POINTS}`);
+    });
+
+    hero.addEventListener('pointerdown', (event) => (lastPointerType = event.pointerType), { passive: true });
+
+    name.addEventListener('pointerenter', (event) => {
+      if (event.pointerType === 'mouse') selectName();
+    });
+
+    name.addEventListener('pointerleave', (event) => {
+      if (event.pointerType === 'mouse') deselectName();
+    });
+
+    // Off screen: stop the loop and freeze the CSS loops too
+    new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      hero.classList.toggle('is-paused', !visible);
+      if (visible) {
+        wake();
+        scheduleGlitch();
+      } else {
+        clearTimeout(glitchTimer);
+        cancelAnimationFrame(frame);
+        frame = 0;
+        clearTrail();
+      }
+    }).observe(hero);
+
+    // ---------- The sky: size, theme and motion ----------
+
+    const isLight = () => getComputedStyle(document.documentElement).colorScheme === 'light';
+    galaxy.setTheme(isLight());
+    galaxy.setStill(!motion());
+    new ResizeObserver(() => galaxy.resize()).observe(hero);
+    // The theme toggle swaps data-theme on <html>, which swaps the CSS variables (and color-scheme)
+    new MutationObserver(() => galaxy.setTheme(isLight())).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+    reducedMotion.addEventListener('change', () => {
+      galaxy.setStill(!motion());
+      wake();
+    });
+    document.addEventListener('visibilitychange', wake);
+  }
 </script>
 
 <!--

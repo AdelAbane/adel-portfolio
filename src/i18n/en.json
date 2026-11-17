@@ -23,7 +23,9 @@
       "score": "000000",
       "hiScore": "HI-SCORE",
       "hiScoreName": ".ADEL",
-      "insertCoin": "INSERT COIN"
+      "insertCoin": "INSERT COIN",
+      "highScore": "HIGH SCORE!",
+      "scoreAnnounce": "Score: {score}"
     },
     "title": "ADEL",
     "start": "▶ START",
