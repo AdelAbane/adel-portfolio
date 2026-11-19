@@ -1,0 +1,582 @@
+---
+import { cvHref, localeBase, type Translations } from '../i18n';
+import { garageCar } from '../lib/garage';
+import ModelCredit from './ModelCredit.astro';
+
+interface Props {
+  t: Translations;
+}
+
+const { t } = Astro.props;
+const about = t.about;
+const quick = t.aboutQuick;
+const base = localeBase(Astro.currentLocale);
+
+// The hero's sky carries on at the top: a few of the same pixel stars ([left %, top %, size])
+const stars = [
+  [6, 22, 3], [14, 64, 2], [23, 38, 3], [31, 78, 2], [42, 18, 2], [55, 52, 3], [63, 30, 2], [71, 70, 3], [79, 14, 2], [88, 46, 3], [95, 74, 2],
+];
+---
+
+<!--
+  The homepage's quick About: everything from the garage, readable at a glance, with no 3D and no
+  portal. A still of the 3D garage sits behind it; "Enter the garage" is the way in.
+  Scroll story (lib/scroll-story.ts, not with reduced motion): the stage pins while a garage door
+  rolls up, the garage lights up and the cards come in. Without it, the door is simply open.
+-->
+<section id="about" class="quick" aria-labelledby="about-quick-title">
+  <!-- The hero's night sky (dawn in daylight) carries on into the garage -->
+  <div class="sky" aria-hidden="true">
+    {stars.map(([x, y, size], i) => (
+      <span style={`left: ${x}%; top: ${y}%; width: ${size}px; height: ${size}px; animation-delay: ${(i * 0.37).toFixed(2)}s`}></span>
+    ))}
+  </div>
+
+  <div class="stage">
+    <div class="still" aria-hidden="true">
+      <img class="still-dark" src="/media/garage-still.webp" alt="" width="1600" height="960" loading="lazy" decoding="async" />
+      <img class="still-light" src="/media/garage-still-light.webp" alt="" width="1600" height="960" loading="lazy" decoding="async" />
+      <span class="shade"></span>
+      <span class="warm"></span>
+      <span class="dim"></span>
+    </div>
+
+    <!-- Same sectional door as the /about arrival -->
+    <div class="door" aria-hidden="true">
+      <div class="panel panel-windows"><span></span><span></span><span></span><span></span></div>
+      <div class="panel"></div>
+      <div class="panel"></div>
+      <div class="panel panel-handle"></div>
+      <div class="panel"></div>
+    </div>
+
+    <div class="cards">
+      <div class="glass card intro story-card">
+        <p class="eyebrow">{quick.eyebrow}</p>
+        <h2 id="about-quick-title" class="title">{quick.title}</h2>
+        <p class="lead">{about.bio[0]}</p>
+        <p>{about.bio[1]}</p>
+      </div>
+
+      <div class="glass card story-card">
+        <h3 class="card-title">{about.toolbox.name}</h3>
+        <div class="groups">
+          {about.toolbox.drawers.map((drawer, i) => (
+            <div class="group">
+              <h4 id={`quick-skills-${i}`} class="group-title">{drawer.title}</h4>
+              <ul class="chips" aria-labelledby={`quick-skills-${i}`}>
+                {drawer.items.map((item) => <li>{item}</li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div class="glass card story-card">
+        <h3 class="card-title">{about.hoodTitle}</h3>
+        <dl class="specs">
+          {about.specs.map((spec) => (
+            <div class="spec">
+              <dt>{spec.label}</dt>
+              <dd>{spec.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+
+      <div class="glass card enter-card story-card">
+        <p>{quick.enterHint}</p>
+        <!-- Plain link without JS; with it, the START portal takes you there (see Hero.astro) -->
+        <div class="actions">
+          <a class="enter" href={`${base}about`} data-warp data-warp-preload={garageCar.webp}>
+            <span aria-hidden="true">▶</span>
+            {quick.enter}
+          </a>
+          <!-- The name keeps the visible words (label in name), plus the file type -->
+          <a class="enter cv" href={cvHref(Astro.currentLocale)} download aria-label={`${quick.cv} (PDF)`}>
+            <svg aria-hidden="true" width="12" height="15" viewBox="0 0 8 10" shape-rendering="crispEdges"
+              ><path fill="currentColor" d="M3 0h2v5h2v1H6v1H5v1H3V7H2V6H1V5h2zM0 9h8v1H0z"></path></svg
+            >
+            {quick.cv}
+          </a>
+        </div>
+      </div>
+
+      <!-- The still shows the 3D car: its licence asks for the credit -->
+      <p class="credit story-card"><ModelCredit t={t} /></p>
+    </div>
+  </div>
+
+  <!-- About → Projects: room for the code to flow in (only with the scroll story) -->
+  <div class="seam" aria-hidden="true"></div>
+</section>
+
+<script>
+  // The hero's "▼ SCROLL" hint goes as soon as the page moves
+  const hint = document.querySelector('.scroll-hint');
+  const updateHint = () => hint?.classList.toggle('is-gone', window.scrollY > 8);
+  window.addEventListener('scroll', updateHint, { passive: true });
+  updateHint();
+
+  // GSAP and ScrollTrigger: homepage only, fetched once the hero is on screen and the page is idle
+  const startStory = () => import('../lib/scroll-story').then(({ initScrollStory }) => initScrollStory()).catch(() => {});
+  const whenIdle = (run: () => void) =>
+    'requestIdleCallback' in window ? requestIdleCallback(run, { timeout: 1500 }) : window.setTimeout(run, 200);
+  if (document.readyState === 'complete') whenIdle(startStory);
+  else window.addEventListener('load', () => whenIdle(startStory), { once: true });
+</script>
+
+<style>
+  /* Same frosted glass as the header bar, a little denser so the text reads over the photo */
+  .quick {
+    --glass: rgba(10, 22, 48, 0.62);
+    --glass-border: rgba(190, 224, 255, 0.16);
+    --glass-highlight: rgba(255, 255, 255, 0.18);
+    --glass-shadow: rgba(2, 6, 20, 0.55);
+    --glass-blur: blur(18px) saturate(160%);
+    --chip: rgba(190, 224, 255, 0.1);
+    --chip-border: rgba(190, 224, 255, 0.18);
+    --rule: rgba(190, 224, 255, 0.12);
+    --label: #8fd4ff;
+    --night: #050b1a;
+    --star: #bfe0ff;
+    position: relative;
+    background: var(--night);
+    isolation: isolate;
+  }
+
+  :global([data-theme='light']) .quick {
+    --glass: rgba(255, 255, 255, 0.72);
+    --glass-border: rgba(10, 42, 94, 0.12);
+    --glass-highlight: rgba(255, 255, 255, 0.8);
+    --glass-shadow: rgba(10, 42, 94, 0.18);
+    --chip: rgba(255, 255, 255, 0.7);
+    --chip-border: rgba(10, 42, 94, 0.14);
+    --rule: rgba(10, 42, 94, 0.12);
+    --label: #0a56b8;
+    --night: #cfe3f8;
+    --star: #ffffff;
+  }
+
+  /* ---------- The sky carrying on from the hero ---------- */
+
+  .sky {
+    position: relative;
+    height: 22vh;
+    background: var(--night);
+  }
+
+  .sky span {
+    position: absolute;
+    background: var(--star);
+    animation: twinkle 3s steps(3, end) infinite;
+  }
+
+  /* ---------- The stage: garage still, door, cards (pinned by the scroll story) ---------- */
+
+  .stage {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    min-height: 100svh;
+    padding: calc(var(--header-h) + 20px) 24px 32px;
+    overflow: hidden;
+  }
+
+  .seam {
+    display: none;
+  }
+
+  :global(html.story) .seam {
+    display: block;
+    height: 60vh;
+  }
+
+  /* The still fills the first screen of the stage and fades into the night below */
+  .still {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: -1;
+    height: 100vh;
+    height: 100svh;
+  }
+
+  /* Scroll story: dark while the door is down (shade), warm light spilling out, dimmed on the way out */
+  .shade,
+  .warm,
+  .dim {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+  }
+
+  .shade {
+    background: rgba(2, 5, 14, 0.85);
+  }
+
+  .warm {
+    background: radial-gradient(ellipse 70% 55% at 50% 100%, rgba(255, 196, 128, 0.32), transparent 70%);
+    mix-blend-mode: screen;
+  }
+
+  .dim {
+    background: var(--night);
+  }
+
+  /* ---------- The door (same as the /about arrival), only with the scroll story ---------- */
+
+  .door {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 1;
+    display: none;
+    flex-direction: column;
+    height: 100vh;
+    height: 100svh;
+    background: #0b1424;
+    border-top: 10px solid #0b1424;
+  }
+
+  :global(html.story) .door {
+    display: flex;
+  }
+
+  :global([data-theme='light']) .door {
+    background: #c9d6e6;
+    border-top-color: #a9bcd6;
+  }
+
+  .panel {
+    position: relative;
+    flex: 1;
+    background: #22447f;
+    border-bottom: 6px solid #142c58;
+  }
+
+  :global([data-theme='light']) .panel {
+    background: #e2eaf4;
+    border-bottom-color: #a9bcd6;
+  }
+
+  /* Four pressed sections per panel */
+  .panel::before {
+    content: '';
+    position: absolute;
+    inset: 18% 0;
+    background: linear-gradient(
+        90deg,
+        transparent 5%,
+        rgb(0 0 0 / 0.18) 5% 5.8%,
+        rgb(255 255 255 / 0.05) 5.8% 94.2%,
+        rgb(0 0 0 / 0.18) 94.2% 95%,
+        transparent 95%
+      )
+      0 0 / 25% 100% repeat-x;
+  }
+
+  .panel-windows {
+    display: flex;
+    gap: 3%;
+    padding: 1.6% 4.5%;
+  }
+
+  .panel-windows::before {
+    content: none;
+  }
+
+  .panel-windows span {
+    flex: 1;
+    border: 6px solid #142c58;
+    background: #0b1830 linear-gradient(160deg, rgb(255 255 255 / 0.14) 0 30%, transparent 30%);
+  }
+
+  :global([data-theme='light']) .panel-windows span {
+    border-color: #a9bcd6;
+    background-color: #9ec6ec;
+  }
+
+  .panel-handle::after {
+    content: '';
+    position: absolute;
+    top: 46%;
+    left: 50%;
+    width: 120px;
+    height: 14px;
+    transform: translateX(-50%);
+    background: #142c58;
+  }
+
+  :global([data-theme='light']) .panel-handle::after {
+    background: #a9bcd6;
+  }
+
+  .still img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .still::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(transparent 70%, var(--night));
+  }
+
+  .still-light,
+  :global([data-theme='light']) .still-dark {
+    display: none;
+  }
+
+  :global([data-theme='light']) .still-light {
+    display: block;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 16px;
+    width: min(100%, 1120px);
+  }
+
+  .glass {
+    background: var(--glass);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      inset 0 1px 0 var(--glass-highlight),
+      0 24px 70px var(--glass-shadow);
+  }
+
+  /* No backdrop blur: a more opaque glass keeps the text readable */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .quick {
+      --glass: rgba(10, 22, 48, 0.9);
+    }
+
+    :global([data-theme='light']) .quick {
+      --glass: rgba(255, 255, 255, 0.92);
+    }
+  }
+
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 24px 26px;
+    border-radius: 28px;
+  }
+
+  .card :where(p, h2, h3, h4, ul, dl, dd) {
+    margin: 0;
+  }
+
+  .eyebrow,
+  .card-title {
+    font-family: var(--font-pixel);
+    font-size: 9px;
+    line-height: 1.6;
+    color: var(--label);
+  }
+
+  .card-title {
+    font-weight: normal;
+  }
+
+  .title {
+    font-family: 'Inter Tight', var(--font-body);
+    font-weight: 800;
+    font-size: clamp(32px, 4vw, 44px);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+
+  .lead {
+    font-size: 17px;
+  }
+
+  .intro p:not(.eyebrow) {
+    color: var(--text);
+  }
+
+  .groups {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 20px;
+  }
+
+  .group-title {
+    margin-bottom: 8px;
+    font-family: 'Inter Tight', var(--font-body);
+    font-weight: 700;
+    font-size: 15px;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .chips li {
+    padding: 4px 10px;
+    border: 1px solid var(--chip-border);
+    border-radius: 999px;
+    background: var(--chip);
+    font-size: 13px;
+  }
+
+  .spec {
+    display: grid;
+    grid-template-columns: minmax(0, 120px) minmax(0, 1fr);
+    gap: 12px;
+    align-items: baseline;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .spec:last-child {
+    border-bottom: 0;
+  }
+
+  .spec dt {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  .spec dd {
+    font-size: 15px;
+  }
+
+  .enter-card {
+    justify-content: center;
+    align-items: flex-start;
+    gap: 18px;
+  }
+
+  .enter {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 0 22px;
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    background: var(--chip);
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+    color: var(--text);
+    font-family: 'Inter Tight', var(--font-body);
+    font-weight: 700;
+    font-size: 16px;
+    text-decoration: none;
+  }
+
+  .enter span,
+  .enter svg {
+    color: var(--accent);
+    font-size: 12px;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .enter.cv {
+    background: transparent;
+  }
+
+  .enter:hover {
+    border-color: var(--accent);
+  }
+
+  .enter:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  .credit {
+    grid-column: 1 / -1;
+    justify-self: end;
+    margin: 0;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--glass);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .credit :global(a) {
+    color: inherit;
+    text-underline-offset: 2px;
+  }
+
+  .credit :global(a:hover) {
+    color: var(--accent);
+  }
+
+  /* Phones: the cards stack, the still keeps covering the background */
+  @media (max-width: 767px) {
+    .quick {
+      --glass-blur: blur(10px) saturate(160%);
+    }
+
+    .sky {
+      height: 14vh;
+    }
+
+    .stage {
+      align-items: flex-start;
+      padding: calc(var(--header-h) + 16px) 16px 32px;
+    }
+
+    .cards {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 16px;
+    }
+
+    .card {
+      padding: 22px;
+      border-radius: 24px;
+    }
+
+    .spec {
+      grid-template-columns: minmax(0, 104px) minmax(0, 1fr);
+    }
+  }
+
+  @keyframes twinkle {
+    0%,
+    100% {
+      opacity: 0.25;
+    }
+    50% {
+      opacity: 0.9;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sky span {
+      animation: none;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .groups {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

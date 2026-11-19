@@ -15,7 +15,11 @@
     "themeToLight": "Switch to light theme",
     "themeToDark": "Switch to dark theme",
     "menu": "MENU",
-    "close": "CLOSE"
+    "close": "CLOSE",
+    "cv": "CV",
+    "cvLabel": "Download Adel's CV (PDF)",
+    "lite": "Lite mode",
+    "liteHint": "Lite mode: no 3D, lighter animations"
   },
   "hero": {
     "hud": {
@@ -29,29 +33,33 @@
     },
     "title": "ADEL",
     "start": "▶ START",
-    "contact": "CONTACT"
+    "contact": "CONTACT",
+    "scroll": "SCROLL"
   },
   "about": {
     "label": "BAY 02 · ABOUT",
     "titleLine1": "Engines & software.",
     "titleLine2": "I like building both.",
-    "toggleOpen": "▲ Open garage",
-    "toggleClose": "▼ Close garage",
-    "bayLabel": "In the bay:",
-    "bayCar": "E46 M3",
-    "bayText": "Naturally aspirated, high-revving, built for people who love to drive. The kind of car you have to understand to get the most out of it.",
     "carAlt": "Illustration of a blue BMW E46 M3, front view",
     "carCredit": "Based on a render by @e46gts",
-    "bio": [
-      "I'm a computer science student at Champlain College Saint-Lambert. Whether it's an engine or an app, I want to know how it works: take it apart, figure it out, put it back together better.",
-      "That's how I learned to code, building games, AI chatbots for local businesses and a homelab. Same with go-karts: I buy them, fix them, sell them. If something's broken, I want to know why."
-    ],
-    "specTitle": "Driver spec sheet",
+    "carLoading": "Rolling the car in…",
+    "modelCredit": {
+      "prefix": "Car model:",
+      "open": "“",
+      "title": "BMW M3 GTR E46 Street ACschnitzer BlackEdition",
+      "close": "”",
+      "titleUrl": "https://sketchfab.com/3d-models/bmw-m3-gtr-e46-street-acschnitzer-blackedition-7f060f9d44b74c34a5184399a6cfc6d7",
+      "by": "by",
+      "author": "ᗩᒪE᙭. Kᗩ.🚗",
+      "authorUrl": "https://sketchfab.com/Alex.Ka.",
+      "licence": "CC BY-NC 4.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by-nc/4.0/"
+    },
+    "hoodOpen": "▲ Pop the hood",
+    "hoodClose": "▼ Close the hood",
+    "hoodTitle": "Under the hood",
+    "hoodTag": "SPEC SHEET",
     "specs": [
-      {
-        "label": "MODEL",
-        "value": "Adel · CS student"
-      },
       {
         "label": "ENGINE",
         "value": "Curiosity, naturally aspirated"
@@ -75,17 +83,96 @@
       {
         "label": "LANGUAGES",
         "value": "English · Français"
-      },
-      {
-        "label": "BUILT IN",
-        "value": "Montréal, QC"
       }
     ],
+    "toolbox": {
+      "name": "Toolbox",
+      "label": "TOOLBOX",
+      "drawers": [
+        {
+          "label": "LANGUAGES",
+          "title": "Languages",
+          "items": [
+            "C# / .NET",
+            "Java",
+            "Python",
+            "JavaScript",
+            "SQL"
+          ]
+        },
+        {
+          "label": "GAME DEV",
+          "title": "Game dev",
+          "items": [
+            "Roblox Studio",
+            "Luau",
+            "Blender",
+            "Game design"
+          ]
+        },
+        {
+          "label": "INFRA",
+          "title": "Infrastructure",
+          "items": [
+            "Linux",
+            "Docker",
+            "Raspberry Pi",
+            "Tailscale",
+            "WireGuard"
+          ]
+        },
+        {
+          "label": "AI + WEB",
+          "title": "AI and web",
+          "items": [
+            "LLM APIs",
+            "Chatbots",
+            "React",
+            "Astro"
+          ]
+        }
+      ]
+    },
+    "bio": [
+      "I'm a computer science student at Champlain College Saint-Lambert. Whether it's an engine or an app, I want to know how it works: take it apart, figure it out, put it back together better.",
+      "That's how I learned to code, building games, AI chatbots for local businesses and a homelab. Same with go-karts: I buy them, fix them, flip them."
+    ],
+    "hint": "Open the toolbox and pop the hood to see what I work with.",
     "next": "Next stop: projects",
-    "back": "◀ Back to the arcade"
+    "back": "Back to the arcade"
+  },
+  "aboutQuick": {
+    "eyebrow": "BAY 02 · QUICK STOP",
+    "title": "About me",
+    "enterHint": "The full version is a 3D garage: open the toolbox and pop the hood.",
+    "enter": "Enter the garage",
+    "cv": "Download my CV"
   },
   "projects": {
-    "title": "Projects"
+    "chip": "~/projects",
+    "title": "Things I've built.",
+    "subtitle": "Some finished, some still in the garage.",
+    "status": {
+      "live": "Live",
+      "progress": "In progress",
+      "ongoing": "Ongoing"
+    },
+    "open": "Open details",
+    "what": "What it is",
+    "built": "What I built",
+    "learned": "What I learned",
+    "stack": "Stack",
+    "links": "Links",
+    "github": "GitHub",
+    "demo": "Live demo",
+    "noLinks": "[TODO] GitHub and demo links",
+    "close": "Close",
+    "workshop": "In the workshop",
+    "workshopStatus": {
+      "idea": "Idea",
+      "prototype": "Prototype",
+      "progress": "In progress"
+    }
   },
   "experience": {
     "title": "Experience"
@@ -94,7 +181,8 @@
     "title": "Side Quests"
   },
   "contact": {
-    "title": "Contact"
+    "title": "Contact",
+    "soon": "Coming soon. In the meantime: [TODO] email."
   },
   "aboutPage": {
     "title": "About — Adel",

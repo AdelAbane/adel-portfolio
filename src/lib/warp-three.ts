@@ -28,12 +28,17 @@ import {
   Vector2,
   WebGLRenderer,
 } from 'three';
+import { createFpsProbe, type QualitySettings } from './quality';
 
 export interface PortalOptions {
   /** The fixed overlay the canvas is drawn into */
   container: HTMLElement;
   /** The CSS sparks already played while three.js was loading: start the timeline at the frame build */
   skipSparks?: boolean;
+  /** The device's tier (bloom, pixel ratio); see quality.ts */
+  quality: QualitySettings;
+  /** The portal averaged under 40fps */
+  onSlow?: (fps: number) => void;
 }
 
 export interface PortalRun {
@@ -100,16 +105,16 @@ function fitDistance(aspect: number): number {
   return Math.max(5 / (visible * 0.55), 4 / (visible * aspect * 0.6));
 }
 
-export function playPortal({ container, skipSparks = false }: PortalOptions): PortalRun {
+export function playPortal({ container, skipSparks = false, quality, onSlow }: PortalOptions): PortalRun {
   const css = getComputedStyle(document.documentElement);
   const bg = new Color(css.getPropertyValue('--bg').trim() || '#0A1428');
   const accent = new Color(css.getPropertyValue('--accent').trim() || '#5CC8FF');
   const isPhone = window.innerWidth < 640;
-  const useBloom = window.innerWidth > 1024 && window.devicePixelRatio <= 2;
+  const useBloom = quality.bloom && window.innerWidth > 1024 && window.devicePixelRatio <= 2;
 
   // Throws when WebGL isn't available; the caller falls back to the CSS portal
   const renderer = new WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(isPhone ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(quality.pixelRatio, isPhone ? 1.5 : 2));
   renderer.setClearColor(bg);
   const canvas = renderer.domElement;
   canvas.style.cssText = 'position: absolute; inset: 0; width: 100%; height: 100%; display: block;';
@@ -360,7 +365,12 @@ export function playPortal({ container, skipSparks = false }: PortalOptions): Po
     resolveDone();
   }
 
-  renderer.setAnimationLoop(() => {
+  // The portal lasts ~3s: its frame rate decides the tier for next time
+  const probe = createFpsProbe(2.5);
+  probe.done.then((fps) => fps < 40 && onSlow?.(fps));
+
+  renderer.setAnimationLoop((now) => {
+    probe.tick(now ?? performance.now());
     try {
       frameLoop();
     } catch {

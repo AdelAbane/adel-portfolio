@@ -8,6 +8,41 @@ interface Props {
 const { t } = Astro.props;
 ---
 
-<section id="contact">
-  <h2>{t.contact.title}</h2>
+<!-- Placeholder until the contact section is designed -->
+<section id="contact" class="contact" aria-labelledby="contact-title">
+  <h2 id="contact-title" class="title">{t.contact.title}</h2>
+  <p class="soon">{t.contact.soon}</p>
 </section>
+
+<style>
+  .contact {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 120px 24px 160px;
+    background: #050b1a;
+    color: #e6f3ff;
+    text-align: center;
+  }
+
+  :global([data-theme='light']) .contact {
+    background: #dcebfb;
+    color: #0a1a33;
+  }
+
+  .title {
+    margin: 0;
+    font-family: 'Inter Tight', var(--font-body);
+    font-weight: 800;
+    font-size: clamp(36px, 5vw, 56px);
+    letter-spacing: -0.04em;
+  }
+
+  .soon {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    opacity: 0.75;
+  }
+</style>

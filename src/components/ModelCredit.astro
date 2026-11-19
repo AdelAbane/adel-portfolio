@@ -1,0 +1,20 @@
+---
+import type { Translations } from '../i18n';
+
+interface Props {
+  t: Translations;
+  class?: string;
+}
+
+// The 3D car's licence (CC BY-NC 4.0) asks for this credit wherever the model is shown
+const { t, class: className } = Astro.props;
+const credit = t.about.modelCredit;
+---
+
+<span class={className}>
+  {`${credit.prefix} ${credit.open}`}<a href={credit.titleUrl} target="_blank" rel="noopener">{credit.title}</a>{`${credit.close} ${credit.by} `}<a
+    href={credit.authorUrl}
+    target="_blank"
+    rel="noopener">{credit.author}</a
+  >{', '}<a href={credit.licenceUrl} target="_blank" rel="noopener license">{credit.licence}</a>
+</span>

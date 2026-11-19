@@ -68,6 +68,13 @@ html {
   scroll-padding-top: var(--header-h);
 }
 
+/* Nav links glide to their section (the reduced-motion rule below turns it off) */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 body {
   margin: 0;
   background: var(--bg);

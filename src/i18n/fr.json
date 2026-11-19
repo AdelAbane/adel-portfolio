@@ -15,7 +15,11 @@
     "themeToLight": "Passer au thème clair",
     "themeToDark": "Passer au thème sombre",
     "menu": "MENU",
-    "close": "FERMER"
+    "close": "FERMER",
+    "cv": "CV",
+    "cvLabel": "Télécharger le CV d'Adel (PDF)",
+    "lite": "Mode léger",
+    "liteHint": "Mode léger : pas de 3D, animations plus légères"
   },
   "hero": {
     "hud": {
@@ -29,29 +33,33 @@
     },
     "title": "ADEL",
     "start": "▶ JOUER",
-    "contact": "CONTACT"
+    "contact": "CONTACT",
+    "scroll": "DEFILER"
   },
   "about": {
     "label": "BAIE 02 · À PROPOS",
     "titleLine1": "Moteurs et logiciels.",
     "titleLine2": "J'aime construire les deux.",
-    "toggleOpen": "▲ Ouvrir le garage",
-    "toggleClose": "▼ Fermer le garage",
-    "bayLabel": "Dans la baie :",
-    "bayCar": "E46 M3",
-    "bayText": "Atmosphérique, qui monte haut dans les tours, fait pour ceux qui aiment conduire. Le genre de voiture qu'il faut comprendre pour en tirer le meilleur.",
     "carAlt": "Illustration d'une BMW E46 M3 bleue, vue de face",
     "carCredit": "D'après un rendu de @e46gts",
-    "bio": [
-      "Je suis étudiant en informatique au Cégep Champlain–Saint-Lambert. Que ce soit un moteur ou une application, je veux comprendre comment ça marche : le démonter, comprendre, le remonter en mieux.",
-      "C'est comme ça que j'ai appris à coder, en créant des jeux, des chatbots IA pour des entreprises locales et un homelab. Pareil pour les go-karts : je les achète, je les répare, je les revends. Si quelque chose est brisé, je veux savoir pourquoi."
-    ],
-    "specTitle": "Fiche technique du pilote",
+    "carLoading": "La voiture arrive…",
+    "modelCredit": {
+      "prefix": "Modèle de la voiture :",
+      "open": "« ",
+      "title": "BMW M3 GTR E46 Street ACschnitzer BlackEdition",
+      "close": " »",
+      "titleUrl": "https://sketchfab.com/3d-models/bmw-m3-gtr-e46-street-acschnitzer-blackedition-7f060f9d44b74c34a5184399a6cfc6d7",
+      "by": "par",
+      "author": "ᗩᒪE᙭. Kᗩ.🚗",
+      "authorUrl": "https://sketchfab.com/Alex.Ka.",
+      "licence": "CC BY-NC 4.0",
+      "licenceUrl": "http://creativecommons.org/licenses/by-nc/4.0/"
+    },
+    "hoodOpen": "▲ Ouvrir le capot",
+    "hoodClose": "▼ Fermer le capot",
+    "hoodTitle": "Sous le capot",
+    "hoodTag": "FICHE TECHNIQUE",
     "specs": [
-      {
-        "label": "MODÈLE",
-        "value": "Adel · Étudiant en informatique"
-      },
       {
         "label": "MOTEUR",
         "value": "Curiosité, atmosphérique"
@@ -75,17 +83,96 @@
       {
         "label": "LANGUES",
         "value": "English · Français"
-      },
-      {
-        "label": "FABRIQUÉ À",
-        "value": "Montréal, QC"
       }
     ],
-    "next": "Prochain arrêt : projets",
-    "back": "◀ Retour à l'arcade"
+    "toolbox": {
+      "name": "Coffre à outils",
+      "label": "OUTILS",
+      "drawers": [
+        {
+          "label": "LANGAGES",
+          "title": "Langages",
+          "items": [
+            "C# / .NET",
+            "Java",
+            "Python",
+            "JavaScript",
+            "SQL"
+          ]
+        },
+        {
+          "label": "JEUX VIDÉO",
+          "title": "Développement de jeux",
+          "items": [
+            "Roblox Studio",
+            "Luau",
+            "Blender",
+            "Conception de jeux"
+          ]
+        },
+        {
+          "label": "INFRA",
+          "title": "Infrastructure",
+          "items": [
+            "Linux",
+            "Docker",
+            "Raspberry Pi",
+            "Tailscale",
+            "WireGuard"
+          ]
+        },
+        {
+          "label": "IA + WEB",
+          "title": "IA et web",
+          "items": [
+            "API de LLM",
+            "Chatbots",
+            "React",
+            "Astro"
+          ]
+        }
+      ]
+    },
+    "bio": [
+      "Je suis étudiant en informatique au Cégep Champlain–Saint-Lambert. Que ce soit un moteur ou une application, je veux comprendre comment ça marche : le démonter, comprendre, le remonter en mieux.",
+      "C'est comme ça que j'ai appris à coder, en créant des jeux, des chatbots IA pour des entreprises locales et un homelab. Pareil pour les go-karts : je les achète, je les répare, je les revends."
+    ],
+    "hint": "Ouvre le coffre à outils et le capot pour voir avec quoi je travaille.",
+    "next": "Prochain arrêt : projets",
+    "back": "Retour à l'arcade"
+  },
+  "aboutQuick": {
+    "eyebrow": "BAIE 02 · EN BREF",
+    "title": "À propos de moi",
+    "enterHint": "La version complète est un garage en 3D : ouvre le coffre à outils et le capot.",
+    "enter": "Entrer dans le garage",
+    "cv": "Télécharger mon CV"
   },
   "projects": {
-    "title": "Projets"
+    "chip": "~/projets",
+    "title": "Ce que j'ai construit.",
+    "subtitle": "Certains finis, d'autres encore au garage.",
+    "status": {
+      "live": "En ligne",
+      "progress": "En cours",
+      "ongoing": "Continu"
+    },
+    "open": "Voir les détails",
+    "what": "Ce que c'est",
+    "built": "Ce que j'ai construit",
+    "learned": "Ce que j'ai appris",
+    "stack": "Technologies",
+    "links": "Liens",
+    "github": "GitHub",
+    "demo": "Démo en ligne",
+    "noLinks": "[TODO] liens GitHub et démo",
+    "close": "Fermer",
+    "workshop": "À l'atelier",
+    "workshopStatus": {
+      "idea": "Idée",
+      "prototype": "Prototype",
+      "progress": "En cours"
+    }
   },
   "experience": {
     "title": "Expérience"
@@ -94,7 +181,8 @@
     "title": "Quêtes annexes"
   },
   "contact": {
-    "title": "Contact"
+    "title": "Contact",
+    "soon": "Bientôt. En attendant : [TODO] courriel."
   },
   "aboutPage": {
     "title": "À propos — Adel",

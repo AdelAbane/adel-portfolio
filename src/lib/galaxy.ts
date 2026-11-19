@@ -33,7 +33,13 @@ interface Palette {
   starsTop: number;
   shooting: string[];
   dawn: boolean;
+  /** The bottom of the sky dithers into this, the colour the About section's sky starts with */
+  fade: RGB;
 }
+
+/** Bottom quarter of the sky: 0 above it, rising to 1 at the very bottom */
+const FADE_FROM = 0.75;
+const fadeAt = (t: number) => Math.max(0, (t - FADE_FROM) / (1 - FADE_FROM));
 
 const rgb = (hex: string): RGB => [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
 
@@ -59,6 +65,7 @@ const NIGHT: Palette = {
   starsTop: 1,
   shooting: ['#FFFFFF', '#BFE0FF', '#5CC8FF', '#1D4ED8', '#312E81'],
   dawn: false,
+  fade: rgb('#050B1A'),
 };
 
 const DAWN: Palette = {
@@ -82,6 +89,7 @@ const DAWN: Palette = {
   starsTop: 0.45,
   shooting: ['#FFFFFF', '#F4F8FF', '#E6EFFC', '#D6E6FA'],
   dawn: true,
+  fade: rgb('#CFE3F8'),
 };
 
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
@@ -127,6 +135,8 @@ interface Star {
   /** Twinkle period in ms (0: steady) */
   period: number;
   phase: number;
+  /** Random 0–1: in the bottom fade, stars below this share are dropped */
+  keep: number;
 }
 
 interface Shooting {
@@ -205,7 +215,8 @@ export function createGalaxy({ host, sky, starLayers, focus }: GalaxyOptions) {
         big: rand() < 0.12,
         period: rand() < 0.35 ? 1800 + rand() * 2600 : 0,
         phase: rand(),
-      }));
+        keep: rand(),
+      })).filter((star) => fadeAt((star.y - MARGIN) / h) < star.keep);
     });
 
     // Two arms of dots, brightest near the core
@@ -290,6 +301,9 @@ export function createGalaxy({ host, sky, starLayers, focus }: GalaxyOptions) {
           const inFocus = 1 - Math.sqrt(Math.sqrt(ex ** 4 + ey ** 4));
           if (inFocus > 0 && Math.min(1, inFocus * 3) * 0.55 > b) color = palette.focus;
         }
+
+        // Bottom quarter: dithered into the colour the next section starts with, so there's no edge
+        if (fadeAt(t) * 1.06 > b) color = palette.fade;
 
         const o = (y * w + x) * 4;
         data[o] = color[0];

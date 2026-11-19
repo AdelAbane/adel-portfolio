@@ -43,6 +43,21 @@ const { title, description = '', lang = 'en' } = Astro.props;
           });
         }
       } catch (e) {}
+      // Low tier known before paint (Lite mode, an earlier downgrade, reduced motion, data saver, little
+      // memory): the hero shows its pre-rendered galaxy straight away. quality.ts confirms the tier.
+      try {
+        const forced = new URLSearchParams(location.search).get('tier');
+        const nav = navigator;
+        const low =
+          forced === 'low' ||
+          (!forced &&
+            (localStorage.getItem('lite-mode') === '1' ||
+              localStorage.getItem('quality-cap') === 'low' ||
+              matchMedia('(prefers-reduced-motion: reduce)').matches ||
+              (nav.connection && nav.connection.saveData) ||
+              (nav.deviceMemory !== undefined && nav.deviceMemory <= 2)));
+        if (low) document.documentElement.dataset.tier = 'low';
+      } catch (e) {}
       try {
         const theme = localStorage.getItem('theme');
         if (theme === 'light' || theme === 'dark') {
@@ -55,10 +70,14 @@ const { title, description = '', lang = 'en' } = Astro.props;
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500&family=Barlow+Condensed:ital,wght@0,600;1,800&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Press+Start+2P&family=Unbounded:wght@500;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500&family=Barlow+Condensed:ital,wght@0,600;1,800&family=Inter:wght@400;500&family=Inter+Tight:wght@600;700;800&family=JetBrains+Mono:wght@400;500&family=Press+Start+2P&family=Unbounded:wght@500;800&display=swap"
     />
   </head>
   <body>
     <slot />
+    <script>
+      // ?debug in the URL: FPS, tier, renderer stats and memory in a corner
+      if (new URLSearchParams(window.location.search).has('debug')) import('../lib/debug').then(({ startDebug }) => startDebug());
+    </script>
   </body>
 </html>

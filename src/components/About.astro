@@ -1,6 +1,7 @@
 ---
 import { localeBase, type Translations } from '../i18n';
 import { garageCar as car } from '../lib/garage';
+import ModelCredit from './ModelCredit.astro';
 
 interface Props {
   t: Translations;
@@ -10,924 +11,1119 @@ const { t } = Astro.props;
 const about = t.about;
 const base = localeBase(Astro.currentLocale);
 
-// Three Edison bulbs on cords of different lengths; they come on one after the other
+/*
+ * The room is one 1440 × 960 drawing in one-point perspective (vanishing point at 720, 355): the
+ * back wall is the rectangle 380–1060 × 110–600 and every other edge runs from a screen corner to
+ * one of its corners. The lights live in the same drawing, so they crop and scale with the room.
+ */
+
+// Edison bulbs: x on the ceiling, cord length, when it comes on, how slowly it sways. Each casts a
+// cone down to a pool of light on the floor.
 const bulbs = [
-  { x: '26%', cord: '4.5cqw', delay: '0.9s' },
-  { x: '50%', cord: '6cqw', delay: '1.25s' },
-  { x: '74%', cord: '4.5cqw', delay: '1.6s' },
+  { x: 562, cord: 150, delay: '0.5s', sway: '6s' },
+  { x: 907, cord: 120, delay: '0.85s', sway: '7.2s' },
+].map(({ x, cord, delay, sway }) => {
+  const top = cord + 26;
+  return {
+    x,
+    cord,
+    delay,
+    sway,
+    cone: `${x - 17},${top} ${x + 17},${top} ${x + 170},746 ${x - 170},746`,
+    poolY: cord > 130 ? 765 : 735,
+  };
+});
+
+// Dust in the beams: [x, y, seconds into its 7s drift]
+const dust = [
+  [518, 384, 0], [562, 528, 1.2], [605, 336, 2.4], [533, 672, 3.1], [634, 595, 4.2], [576, 461, 5.3], [547, 288, 6.1],
+  [864, 432, 0.6], [907, 557, 1.8], [950, 365, 2.9], [878, 691, 3.7], [922, 499, 4.8], [965, 634, 5.6], [893, 307, 6.5],
 ];
+
+// Stars in the back window (night only)
+const stars = [[475, 192], [504, 250], [547, 182], [576, 278], [490, 288], [562, 221], [590, 202], [518, 259]];
+
+// Panel seams: back wall verticals, side wall verticals (left, mirrored right)
+const backSeams = [465, 550, 635, 805, 890, 975];
+const sideSeams = [
+  [80, 23, 884],
+  [170, 49, 799],
+  [260, 75, 714],
+  [330, 96, 647],
+];
+// Floor tiles: lines from the back edge to the front, and rows getting wider towards the viewer
+const tileRays = [[380, -130], [465, 82], [550, 295], [635, 507], [720, 720], [805, 932], [890, 1145], [975, 1357], [1060, 1570]];
+const tileRows = [625, 660, 712, 790, 900];
 ---
 
-<!-- A world of its own: a cozy house garage that rolls open on a parked car -->
-<section id="about" class="world-garage" aria-labelledby="about-title">
-  <div class="wrap">
-    <a class="back" href={base}>{about.back}</a>
+<!-- BAY 02: the inside of a garage at night, in one-point perspective, with a toolbox and a car to open -->
+<section class="garage" aria-labelledby="about-title">
+  <div class="layer room" data-depth="8" aria-hidden="true">
+    <div class="room-view">
+      <svg class="room-svg" viewBox="0 0 1440 960" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <clipPath id="floor-clip"><polygon points="0,960 1440,960 1060,600 380,600" /></clipPath>
+          <radialGradient id="bulb-glow">
+            <stop offset="0" stop-color="#FFC882" stop-opacity="0.7" />
+            <stop offset="1" stop-color="#FFC882" stop-opacity="0" />
+          </radialGradient>
+          <linearGradient id="day-sky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#7EC2FF" />
+            <stop offset="1" stop-color="#DDF1FF" />
+          </linearGradient>
+        </defs>
 
-    <div class="bay-head">
-      <div>
-        <p class="label">{about.label}</p>
-        <h1 id="about-title" class="title">
-          {about.titleLine1}<br /><span class="title-accent">{about.titleLine2}</span>
-        </h1>
-      </div>
+        <!-- Surfaces -->
+        <polygon class="ceiling" points="0,0 1440,0 1060,110 380,110" />
+        <polygon class="side" points="0,0 380,110 380,600 0,960" />
+        <polygon class="side" points="1440,0 1060,110 1060,600 1440,960" />
+        <rect class="back" x="380" y="110" width="680" height="490" />
+        <polygon class="floor" points="0,960 1440,960 1060,600 380,600" />
+
+        <!-- Wall panels and floor tiles -->
+        <g class="back-seams">{backSeams.map((x) => <line x1={x} y1="110" x2={x} y2="600" />)}</g>
+        <g class="side-seams">
+          {sideSeams.map(([x, y1, y2]) => <line x1={x} y1={y1} x2={x} y2={y2} />)}
+          {sideSeams.map(([x, y1, y2]) => <line x1={1440 - x} y1={y1} x2={1440 - x} y2={y2} />)}
+        </g>
+        <g class="tiles" clip-path="url(#floor-clip)">
+          {tileRays.map(([x1, x2]) => <line x1={x1} y1="600" x2={x2} y2="960" />)}
+          {tileRows.map((y) => <line x1="0" y1={y} x2="1440" y2={y} />)}
+        </g>
+        <ellipse class="stain" cx="560" cy="820" rx="150" ry="34" />
+
+        <!-- Shadows along the seams where the surfaces meet -->
+        <g class="seam seam-floor">
+          <line x1="380" y1="600" x2="1060" y2="600" />
+          <line x1="0" y1="960" x2="380" y2="600" />
+          <line x1="1440" y1="960" x2="1060" y2="600" />
+        </g>
+        <g class="seam seam-top">
+          <line x1="380" y1="110" x2="1060" y2="110" />
+          <line x1="0" y1="0" x2="380" y2="110" />
+          <line x1="1440" y1="0" x2="1060" y2="110" />
+          <line x1="380" y1="110" x2="380" y2="600" />
+          <line x1="1060" y1="110" x2="1060" y2="600" />
+        </g>
+
+        <!-- Garage door tracks on the ceiling, and the opener with its blinking LED -->
+        <g class="track">
+          <line x1="300" y1="0" x2="428" y2="110" />
+          <line x1="1140" y1="0" x2="1012" y2="110" />
+        </g>
+        <rect class="opener" x="682" y="36" width="76" height="30" rx="4" />
+        <line class="opener-rail" x1="720" y1="66" x2="720" y2="110" />
+        <rect class="led-glow" x="740" y="44" width="14" height="14" rx="7" />
+        <rect class="led" x="744" y="48" width="6" height="6" />
+
+        <!-- Back window: night sky with a moon and stars, or daylight -->
+        <rect class="window-frame" x="430" y="160" width="190" height="150" />
+        <rect class="window-glass" x="440" y="170" width="170" height="130" />
+        <g class="night-only">
+          <path class="moon" d="M460 186h16v16h-16zM466 186h10v10h-10z" fill-rule="evenodd" />
+          {stars.map(([x, y], i) => <rect class="star" x={x} y={y} width="3" height="3" style={`animation-delay: ${(i * 0.3).toFixed(1)}s`} />)}
+        </g>
+        <g class="day-only">
+          <rect class="sun" x="566" y="184" width="22" height="22" />
+          <path class="cloud" d="M452 262h44v-8h12v-8h20v8h10v8h8v8h-94z" />
+        </g>
+        <line class="window-frame-line" x1="525" y1="170" x2="525" y2="300" />
+
+        <!-- Pegboard with tools -->
+        <rect class="pegboard" x="680" y="160" width="300" height="200" />
+        <g class="tool-a">
+          <rect x="710" y="190" width="12" height="90" rx="3" />
+          <rect x="740" y="200" width="10" height="70" rx="3" />
+          <rect x="766" y="210" width="8" height="54" rx="3" />
+        </g>
+        <g class="tool-b">
+          <rect x="800" y="196" width="60" height="16" rx="3" />
+          <rect x="826" y="212" width="8" height="60" rx="2" />
+          <path d="M890 196 L910 196 L920 270 L912 272 L900 214 L888 272 L880 270 Z" />
+          <rect x="940" y="200" width="10" height="80" rx="3" />
+          <rect class="accent" x="937" y="200" width="16" height="22" rx="3" />
+        </g>
+
+        <!-- Workbench with a radio and a mug -->
+        <rect class="wood" x="840" y="470" width="210" height="16" />
+        <rect class="wood-dark" x="852" y="486" width="10" height="114" />
+        <rect class="wood-dark" x="1028" y="486" width="10" height="114" />
+        <rect class="radio" x="870" y="432" width="64" height="38" rx="5" />
+        <circle class="speaker" cx="888" cy="451" r="9" />
+        <rect class="mug" x="950" y="444" width="20" height="26" rx="3" />
+
+        <!-- Shelves with bottles and boxes -->
+        <rect class="shelf" x="400" y="400" width="140" height="10" />
+        <rect class="shelf" x="400" y="470" width="140" height="10" />
+        <rect class="accent" x="410" y="370" width="16" height="30" rx="3" />
+        <rect class="bottle-pale" x="432" y="378" width="16" height="22" rx="3" />
+        <rect class="box" x="470" y="372" width="40" height="28" />
+        <rect class="box-dark" x="414" y="440" width="44" height="30" />
+        <rect class="bottle-red" x="470" y="446" width="18" height="24" rx="3" />
+
+        <!-- Edison bulbs: a cone of warm light down to a pool on the floor -->
+        {bulbs.map((bulb) => (
+          <g class="bulb" style={`--delay: ${bulb.delay}; --sway: ${bulb.sway}`}>
+            <polygon class="cone flick" points={bulb.cone} />
+            <ellipse class="pool" cx={bulb.x} cy={bulb.poolY} rx="190" ry="35" />
+            <g class="sway">
+              <line class="cord" x1={bulb.x} y1="0" x2={bulb.x} y2={bulb.cord} />
+              <circle class="glow flick" cx={bulb.x} cy={bulb.cord + 15} r="44" />
+              <rect class="socket" x={bulb.x - 5} y={bulb.cord - 4} width="10" height="6" />
+              <rect class="bulb-glass flick" x={bulb.x - 11} y={bulb.cord} width="22" height="30" rx="11" ry="13" />
+            </g>
+          </g>
+        ))}
+        <g class="dust">
+          {dust.map(([x, y, at]) => <circle cx={x} cy={y} r="1.5" style={`animation-delay: -${at}s`} />)}
+        </g>
+      </svg>
+      <div class="vignette"></div>
+    </div>
+  </div>
+
+  <div class="layer tires" data-depth="30" aria-hidden="true">
+    <span></span><span></span><span></span>
+  </div>
+
+  <!-- The glass headline card is gone for now (about.label and the title keys stay in en/fr.json); screen readers still get the page's title -->
+  <h1 id="about-title" class="sr-only">{about.titleLine1} {about.titleLine2}</h1>
+
+  <div class="layer car" data-depth="16">
+    <span class="car-shadow" aria-hidden="true"></span>
+    <picture>
+      <source srcset={car.webp} type="image/webp" />
+      <img src={car.png} width={car.width} height={car.height} alt={about.carAlt} decoding="async" fetchpriority="high" draggable="false" />
+    </picture>
+    <!-- 3D only: shown while the car model downloads -->
+    <p class="glass car-loading" role="status" hidden>
+      <span class="car-loading-light" aria-hidden="true"></span>{about.carLoading}<span class="car-loading-progress" aria-hidden="true"></span>
+    </p>
+    <div class="hood">
       <button
         type="button"
-        class="door-toggle"
-        data-label-open={about.toggleOpen}
-        data-label-close={about.toggleClose}
+        class="glass hood-toggle"
+        aria-expanded="false"
+        aria-controls="hood-sheet"
+        data-label-open={about.hoodOpen}
+        data-label-close={about.hoodClose}
       >
-        {about.toggleOpen}
+        {about.hoodOpen}
       </button>
     </div>
-
-    <div class="house">
-      <span class="porch-light porch-left" aria-hidden="true"></span>
-      <span class="porch-light porch-right" aria-hidden="true"></span>
-
-      <div class="frame">
-        <span class="spill spill-halo" aria-hidden="true"></span>
-
-        <div class="garage">
-          <!-- Interior: panelled wall, concrete floor, rug, flat props on the sides, hanging bulbs -->
-          <div class="interior" aria-hidden="true">
-            <div class="wall"></div>
-            <div class="ceiling"></div>
-            <div class="floor"></div>
-            <!-- Light theme: afternoon sun through the door windows -->
-            <span class="sun sun-left"></span>
-            <span class="sun sun-right"></span>
-            <div class="rug"></div>
-
-            <svg class="prop poster poster-left" viewBox="0 0 30 40">
-              <rect width="30" height="40" fill="#4E3522" />
-              <rect x="2" y="2" width="26" height="36" fill="#1F4E9C" />
-              <path d="M9 38 L15 2 H19 L13 38 Z M15 38 L21 2 H23 L17 38 Z" fill="#F2EFE6" />
-            </svg>
-
-            <svg class="prop poster poster-right" viewBox="0 0 30 40">
-              <rect width="30" height="40" fill="#4E3522" />
-              <rect x="2" y="2" width="26" height="18" fill="#9CC3EA" />
-              <rect x="2" y="20" width="26" height="18" fill="#4F7A5A" />
-              <circle cx="21" cy="11" r="3.5" fill="#FFD9A0" />
-              <path d="M5 38 L14 20 H16 L25 38 Z" fill="#2A2A30" />
-              <g fill="#F2EFE6">
-                <rect x="14.6" y="22" width="0.8" height="3" />
-                <rect x="14.5" y="27" width="1" height="3.5" />
-                <rect x="14.4" y="32.5" width="1.2" height="4" />
-              </g>
-            </svg>
-
-            <svg class="prop pegboard" viewBox="0 0 100 80">
-              <defs>
-                <pattern id="peg-holes" width="5" height="5" patternUnits="userSpaceOnUse">
-                  <rect x="2" y="2" width="1.2" height="1.2" fill="#5E4630" />
-                </pattern>
-              </defs>
-              <rect width="100" height="80" fill="#8A6A4A" />
-              <rect width="100" height="80" fill="url(#peg-holes)" />
-              <rect x="1" y="1" width="98" height="78" fill="none" stroke="#5E4630" stroke-width="2" />
-              <!-- three wrenches, large to small -->
-              <g fill="#B9BEC8">
-                <rect x="8" y="12" width="4" height="36" />
-                <circle cx="10" cy="12" r="5.5" />
-                <circle cx="10" cy="49" r="4" />
-                <rect x="19" y="12" width="3.4" height="28" />
-                <circle cx="20.7" cy="12" r="4.6" />
-                <circle cx="20.7" cy="41" r="3.4" />
-                <rect x="29" y="12" width="2.8" height="21" />
-                <circle cx="30.4" cy="12" r="3.8" />
-                <circle cx="30.4" cy="34" r="2.8" />
-              </g>
-              <g fill="#8A6A4A">
-                <rect x="8.4" y="5" width="3.2" height="6" />
-                <rect x="19.3" y="6.4" width="2.8" height="5" />
-                <rect x="29.2" y="7.4" width="2.4" height="4.2" />
-                <circle cx="10" cy="49" r="1.8" />
-                <circle cx="20.7" cy="41" r="1.5" />
-                <circle cx="30.4" cy="34" r="1.2" />
-              </g>
-              <!-- hammer -->
-              <rect x="47" y="15" width="4" height="36" fill="#5E4029" />
-              <rect x="39" y="8" width="20" height="7" fill="#B9BEC8" />
-              <rect x="39" y="15" width="4" height="3" fill="#B9BEC8" />
-              <!-- pliers -->
-              <path d="M66 10 L70 26 L68 50 L64 50 L66 27 Z" fill="#D63A2F" />
-              <path d="M76 10 L72 26 L74 50 L78 50 L76 27 Z" fill="#D63A2F" />
-              <rect x="68.5" y="22" width="5" height="6" fill="#B9BEC8" />
-              <path d="M68.5 22 L67 8 L70 8 L71 22 Z M73.5 22 L75 8 L72 8 L71 22 Z" fill="#B9BEC8" />
-              <!-- screwdriver -->
-              <rect x="86" y="9" width="6" height="15" fill="#1F4E9C" />
-              <rect x="88.3" y="24" width="1.4" height="24" fill="#B9BEC8" />
-              <!-- hooks -->
-              <g fill="#5E4630">
-                <rect x="9" y="3" width="2" height="2" />
-                <rect x="19.7" y="4.4" width="2" height="2" />
-                <rect x="29.4" y="5.6" width="2" height="2" />
-                <rect x="48" y="5" width="2" height="3" />
-                <rect x="70" y="5" width="2" height="3" />
-                <rect x="88" y="5" width="2" height="4" />
-              </g>
-            </svg>
-
-            <svg class="prop shelves" viewBox="0 0 100 100">
-              <g fill="#6B4A30">
-                <rect x="2" y="0" width="4" height="100" />
-                <rect x="94" y="0" width="4" height="100" />
-                <rect x="0" y="30" width="100" height="3" />
-                <rect x="0" y="64" width="100" height="3" />
-                <rect x="0" y="97" width="100" height="3" />
-              </g>
-              <!-- boxes -->
-              <rect x="10" y="10" width="30" height="20" fill="#A07A52" />
-              <rect x="10" y="18" width="30" height="3" fill="#8A6440" />
-              <rect x="44" y="15" width="22" height="15" fill="#B48A5E" />
-              <rect x="70" y="18" width="20" height="12" fill="#A07A52" />
-              <!-- oil bottles -->
-              <path d="M10 64 V46 L14 42 H22 V64 Z" fill="#E0B04A" />
-              <rect x="17" y="38" width="4" height="4" fill="#1C1C21" />
-              <rect x="12" y="51" width="8" height="7" fill="#1C1C21" />
-              <path d="M26 64 V46 L30 42 H38 V64 Z" fill="#E0B04A" />
-              <rect x="33" y="38" width="4" height="4" fill="#1C1C21" />
-              <rect x="28" y="51" width="8" height="7" fill="#1C1C21" />
-              <path d="M44 64 V48 L47 45 H53 V64 Z" fill="#D63A2F" />
-              <rect x="49" y="42" width="3" height="3" fill="#1C1C21" />
-              <rect x="58" y="44" width="14" height="20" fill="#1F4E9C" />
-              <rect x="61" y="40" width="4" height="4" fill="#1C1C21" />
-              <rect x="58" y="51" width="14" height="4" fill="#F2EFE6" />
-              <rect x="76" y="48" width="14" height="16" fill="#A07A52" />
-              <!-- bottom shelf: a parts bin and one more box -->
-              <rect x="10" y="80" width="36" height="17" fill="#2A3A55" />
-              <rect x="10" y="80" width="36" height="3" fill="#1F2B40" />
-              <rect x="52" y="74" width="34" height="23" fill="#B48A5E" />
-              <rect x="52" y="83" width="34" height="3" fill="#8A6440" />
-            </svg>
-
-            <svg class="prop extinguisher" viewBox="0 0 20 56">
-              <rect x="2" y="24" width="16" height="3" fill="#3A3A42" />
-              <rect x="3" y="12" width="14" height="42" rx="6" fill="#D63A2F" />
-              <rect x="7" y="6" width="6" height="7" fill="#1C1C21" />
-              <rect x="4" y="3" width="13" height="3" fill="#1C1C21" />
-              <path d="M13 8 H18 V32" fill="none" stroke="#1C1C21" stroke-width="1.6" />
-              <rect x="6" y="30" width="8" height="10" fill="#F2EFE6" />
-            </svg>
-
-            <svg class="prop toolchest" viewBox="0 0 60 92">
-              <!-- wrenches lying on top -->
-              <g fill="#B9BEC8">
-                <rect x="8" y="3" width="20" height="2.4" />
-                <circle cx="8" cy="4.2" r="2.8" />
-                <rect x="34" y="4" width="15" height="2" />
-                <circle cx="49" cy="5" r="2.3" />
-              </g>
-              <rect x="0" y="7" width="60" height="6" fill="#163A75" />
-              <rect x="0" y="13" width="60" height="70" fill="#1F4E9C" />
-              <g fill="#163A75">
-                <rect x="0" y="24.5" width="60" height="1" />
-                <rect x="0" y="36.5" width="60" height="1" />
-                <rect x="0" y="48.5" width="60" height="1" />
-                <rect x="0" y="60.5" width="60" height="1" />
-                <rect x="0" y="72" width="60" height="1" />
-              </g>
-              <g fill="#C9D3E3">
-                <rect x="18" y="17.5" width="24" height="1.4" />
-                <rect x="18" y="29.5" width="24" height="1.4" />
-                <rect x="18" y="41.5" width="24" height="1.4" />
-                <rect x="18" y="53.5" width="24" height="1.4" />
-                <rect x="18" y="65.5" width="24" height="1.4" />
-                <rect x="18" y="77" width="24" height="1.4" />
-              </g>
-              <g fill="#1C1C21">
-                <rect x="0" y="83" width="60" height="3" />
-                <circle cx="6" cy="88.5" r="3.2" />
-                <circle cx="21" cy="88.5" r="3.2" />
-                <circle cx="39" cy="88.5" r="3.2" />
-                <circle cx="54" cy="88.5" r="3.2" />
-              </g>
-            </svg>
-
-            <svg class="prop stool" viewBox="0 0 30 36">
-              <rect x="1" y="0" width="28" height="4" fill="#7A5536" />
-              <g fill="#5A3E27">
-                <path d="M5 4 H9 L7 36 H3 Z" />
-                <path d="M21 4 H25 L27 36 H23 Z" />
-                <rect x="5" y="22" width="20" height="2" />
-              </g>
-            </svg>
-
-            <!-- Workbench with a retro radio, a mug and a work lamp; the tires sit under it -->
-            <svg class="prop workbench" viewBox="0 0 100 100">
-              <!-- radio -->
-              <rect x="22" y="22" width="30" height="18" rx="3" fill="#E8DCC2" />
-              <rect x="25" y="25" width="13" height="12" rx="1" fill="#A08F70" />
-              <g fill="#E8DCC2">
-                <rect x="25" y="28" width="13" height="1" />
-                <rect x="25" y="31" width="13" height="1" />
-                <rect x="25" y="34" width="13" height="1" />
-              </g>
-              <circle cx="45" cy="31" r="4" fill="#1F4E9C" />
-              <rect x="44.5" y="27" width="1" height="4" fill="#E8DCC2" />
-              <path d="M48 22 L58 8" stroke="#3A3A42" stroke-width="1" />
-              <!-- mug -->
-              <rect x="58" y="30" width="8" height="10" fill="#F2EFE6" />
-              <rect x="58" y="33" width="8" height="2" fill="#1F4E9C" />
-              <path d="M66 32 H69 V37 H66" fill="none" stroke="#F2EFE6" stroke-width="1.6" />
-              <!-- work lamp -->
-              <rect x="76" y="37" width="14" height="3" fill="#2A2A30" />
-              <path d="M83 37 L79 22 L90 12" fill="none" stroke="#2A2A30" stroke-width="1.8" />
-              <path d="M86 9 L94 13 L92 19 L84 15 Z" fill="#1F4E9C" />
-              <!-- bench -->
-              <rect x="0" y="40" width="100" height="6" fill="#7A5536" />
-              <rect x="0" y="46" width="100" height="2" fill="#5E4029" />
-              <g fill="#4E3522">
-                <rect x="4" y="48" width="6" height="52" />
-                <rect x="90" y="48" width="6" height="52" />
-              </g>
-            </svg>
-
-            <svg class="prop tires" viewBox="0 0 60 72">
-              <g fill="#1C1C21" stroke="#3A3A42" stroke-width="1.2">
-                <rect x="1" y="49" width="58" height="22" rx="7" />
-                <rect x="1" y="25" width="58" height="22" rx="7" />
-                <rect x="1" y="1" width="58" height="22" rx="7" />
-              </g>
-              <!-- tread -->
-              <g fill="#2A2A30">
-                <rect x="9" y="5" width="2" height="14" /><rect x="17" y="5" width="2" height="14" /><rect x="25" y="5" width="2" height="14" /><rect x="33" y="5" width="2" height="14" /><rect x="41" y="5" width="2" height="14" /><rect x="49" y="5" width="2" height="14" />
-                <rect x="9" y="29" width="2" height="14" /><rect x="17" y="29" width="2" height="14" /><rect x="25" y="29" width="2" height="14" /><rect x="33" y="29" width="2" height="14" /><rect x="41" y="29" width="2" height="14" /><rect x="49" y="29" width="2" height="14" />
-                <rect x="9" y="53" width="2" height="14" /><rect x="17" y="53" width="2" height="14" /><rect x="25" y="53" width="2" height="14" /><rect x="33" y="53" width="2" height="14" /><rect x="41" y="53" width="2" height="14" /><rect x="49" y="53" width="2" height="14" />
-              </g>
-            </svg>
-
-            <div class="shade"></div>
-            <div class="lit"></div>
-
-            {
-              bulbs.map((bulb) => (
-                <span class="bulb" style={`--x: ${bulb.x}; --cord: ${bulb.cord}; --delay: ${bulb.delay}`}>
-                  <span class="bulb-glass" />
-                  <span class="bulb-on" />
-                </span>
-              ))
-            }
-          </div>
-
-          <div class="car">
-            <span class="car-shadow" aria-hidden="true"></span>
-            <picture class="car-reflection" aria-hidden="true">
-              <source srcset={car.webp} type="image/webp" />
-              <img src={car.png} width={car.width} height={car.height} alt="" decoding="async" />
-            </picture>
-            <picture>
-              <source srcset={car.webp} type="image/webp" />
-              <img
-                src={car.png}
-                width={car.width}
-                height={car.height}
-                alt={about.carAlt}
-                decoding="async"
-                fetchpriority="high"
-              />
-            </picture>
-            <span class="hl hl-left" aria-hidden="true"></span>
-            <span class="hl hl-right" aria-hidden="true"></span>
-          </div>
-
-          <a class="credit" href="https://instagram.com/e46gts" target="_blank" rel="noopener">{about.carCredit}</a>
-
-          <!-- Sectional door: 5 panels, the top one glazed -->
-          <div class="door" aria-hidden="true">
-            <div class="panel panel-windows">
-              <span class="window"></span>
-              <span class="window"></span>
-              <span class="window"></span>
-              <span class="window"></span>
-            </div>
-            <div class="panel"></div>
-            <div class="panel"></div>
-            <div class="panel"></div>
-            <div class="panel panel-handle"></div>
-          </div>
-        </div>
-
-        <span class="spill spill-floor" aria-hidden="true"></span>
+    <div id="hood-sheet" class="glass sheet" hidden>
+      <div class="sheet-head">
+        <h2 class="sheet-title">{about.hoodTitle}</h2>
+        <span class="sheet-tag" aria-hidden="true">{about.hoodTag}</span>
       </div>
-
-      <div class="apron" aria-hidden="true"></div>
+      <dl class="specs">
+        {about.specs.map((spec) => (
+          <div class="spec">
+            <dt>{spec.label}</dt>
+            <dd>{spec.value}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
+  </div>
 
-    <div class="bay-bar">
-      <p class="bay-name">
-        {about.bayLabel} <strong>{about.bayCar}</strong>
-      </p>
-      <p class="bay-text">{about.bayText}</p>
+  <div class="layer toolbox" data-depth="28">
+    <div class="chest" role="group" aria-label={about.toolbox.name}>
+      <span class="chest-label" aria-hidden="true">{about.toolbox.label}</span>
+      {about.toolbox.drawers.map((drawer, i) => (
+        <button type="button" class="drawer" aria-expanded="false" aria-controls={`drawer-${i}`}>
+          <span class="drawer-label">{drawer.label}</span>
+          <span class="handle" aria-hidden="true"></span>
+        </button>
+      ))}
     </div>
-
-    <div class="bay-body">
-      <div class="bio">
-        {about.bio.map((paragraph) => <p>{paragraph}</p>)}
+    <div class="casters" aria-hidden="true"><span></span><span></span></div>
+    {about.toolbox.drawers.map((drawer, i) => (
+      <div id={`drawer-${i}`} class="glass skills" hidden>
+        <h2 class="skills-title">{drawer.title}</h2>
+        <ul class="chips">{drawer.items.map((item) => <li>{item}</li>)}</ul>
       </div>
+    ))}
+  </div>
 
-      <div class="spec">
-        <h2 class="spec-title">{about.specTitle}</h2>
-        <dl>
-          {about.specs.map((spec) => (
-            <div class="spec-row">
-              <dt>{spec.label}</dt>
-              <dd>{spec.value}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
+  <div class="bottom">
+    <!-- The drawing's credit, or the 3D model's (CC BY 4.0) once the 3D garage is showing -->
+    <p class="credit">
+      <a class="credit-drawing" href="https://instagram.com/e46gts" target="_blank" rel="noopener">{about.carCredit}</a>
+      <ModelCredit t={t} class="credit-model" />
+    </p>
+    <div class="glass bio">
+      <p class="bio-lead">{about.bio[0]}</p>
+      <p class="bio-more">{about.bio[1]}</p>
     </div>
+    <div class="glass next-card">
+      <p class="hint">{about.hint}</p>
+      <a class="next" href={`${base}#projects`}>{about.next} <span aria-hidden="true">→</span></a>
+    </div>
+  </div>
 
-    <a class="next" href={`${base}#projects`}>{about.next} <span aria-hidden="true">→</span></a>
+  <!-- Arrival: a closed sectional door over the whole screen rolls up (with JS and motion only) -->
+  <div class="door" aria-hidden="true">
+    <div class="panel panel-windows"><span></span><span></span><span></span><span></span></div>
+    <div class="panel"></div>
+    <div class="panel"></div>
+    <div class="panel panel-handle"></div>
+    <div class="panel"></div>
   </div>
 </section>
 
 <script>
-  const section = document.querySelector<HTMLElement>('.world-garage');
-  const house = section?.querySelector<HTMLElement>('.house');
-  const toggle = section?.querySelector<HTMLButtonElement>('.door-toggle');
+  import type { GarageLayout, GarageScene, Rect, Theme } from '../lib/garage-three';
+  import { downgrade, getSettings, settingsFor } from '../lib/quality';
 
-  if (section && house && toggle) {
-    let played = false;
+  const garage = document.querySelector<HTMLElement>('.garage');
+  if (garage) initGarage(garage);
 
-    const setOpen = (open: boolean) => {
-      section.classList.toggle('is-open', open);
-      const label = open ? toggle.dataset.labelClose : toggle.dataset.labelOpen;
-      if (label) toggle.textContent = label;
+  function initGarage(garage: HTMLElement) {
+    const root = document.documentElement;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const wide = window.matchMedia('(min-width: 768px)');
+    const touch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    const door = garage.querySelector<HTMLElement>('.door')!;
+    const roomView = garage.querySelector<HTMLElement>('.room-view')!;
+    const carLayer = garage.querySelector<HTMLElement>('.layer.car')!;
+    const toolbox = garage.querySelector<HTMLElement>('.layer.toolbox')!;
+    const chest = toolbox.querySelector<HTMLElement>('.chest')!;
+    const chestLabel = toolbox.querySelector<HTMLElement>('.chest-label')!;
+    const carLoading = carLayer.querySelector<HTMLElement>('.car-loading')!;
+    const carProgress = carLoading.querySelector<HTMLElement>('.car-loading-progress')!;
+
+    // The three.js garage, once it has taken over from the drawing
+    let scene: GarageScene | null = null;
+
+    // ---------- Arrival: the door rolls up (~2.4s) and the bulbs flicker on ----------
+
+    function open() {
+      garage.classList.add('is-open');
+      door.addEventListener('transitionend', () => (door.hidden = true), { once: true });
+    }
+
+    const portal = root.hasAttribute('data-warp-arrival');
+    // Came through the START portal: Base.astro fades its cover out first
+    const portalDone = new Promise<void>((resolve) => {
+      if (portal) document.addEventListener('warp:arrived', () => resolve(), { once: true });
+      else resolve();
+    });
+
+    // ---------- 3D: only where it can run smoothly, otherwise the drawing stays ----------
+
+    // The tier decides (quality.ts: low = no three.js); ?3d=0 keeps the CSS garage anyway
+    const choice = new URLSearchParams(window.location.search).get('3d');
+    let quality = getSettings();
+    const want3d = quality.three && choice !== '0';
+    const firstVisit = !sessionFlag('garage-arrived');
+
+    if (reducedMotion.matches) {
+      door.hidden = true;
+      garage.classList.add('is-open');
+    } else if (!want3d) {
+      portalDone.then(() => window.setTimeout(open, portal ? 200 : 400));
+    } else if (!firstVisit) {
+      // The arrival plays once per visit: straight to the garage, then the 3D fades in
+      door.hidden = true;
+      garage.classList.add('is-open');
+      load3d(false).then((ready) => ready && show3d(ready));
+    } else {
+      sessionFlag('garage-arrived', true);
+      const ready = load3d(true);
+      // The CSS door stays closed while three.js loads; if it takes too long, the CSS door opens
+      portalDone
+        .then(() => Promise.race([ready, new Promise<undefined>((resolve) => window.setTimeout(resolve, 2500))]))
+        .then((result) => {
+          if (result) return arrive3d(result);
+          open();
+          if (result === undefined) ready.then((late) => late && show3d(late));
+        });
+    }
+
+    function sessionFlag(key: string, set?: boolean) {
+      try {
+        if (set) sessionStorage.setItem(key, '1');
+        return sessionStorage.getItem(key) === '1';
+      } catch {
+        return false;
+      }
+    }
+
+    const currentTheme = (): Theme => (root.dataset.theme === 'light' ? 'light' : 'dark');
+
+    /** Builds the scene behind the drawing and checks it keeps up; null means stay with CSS */
+    async function load3d(arrival: boolean): Promise<GarageScene | null> {
+      const container = document.createElement('div');
+      container.className = 'scene3d';
+      roomView.querySelector('.vignette')!.before(container);
+      try {
+        const { createGarage } = await import('../lib/garage-three');
+        const built = await createGarage({
+          container,
+          theme: currentTheme(),
+          quality,
+          touch,
+          full: wide.matches,
+          arrival,
+          modelUrl: '/models/e46-opt.glb',
+          dracoPath: '/draco/',
+          onCarProgress: (progress) => {
+            if (progress !== null) carProgress.textContent = ` ${Math.round(progress * 100)}%`;
+          },
+          onCarReady: () => {
+            carLoading.hidden = true;
+            garage.classList.add('is-car-in');
+          },
+          skillLabels: drawers.map((drawer) => drawer.querySelector('.drawer-label')!.textContent!.trim()),
+          // A label round the holographic engine opens (or closes) its toolbox card
+          onSkill: (index) => setDrawer(drawers[index].getAttribute('aria-expanded') === 'true' ? null : drawers[index]),
+          onLayout: place,
+          onReveal: reveal,
+          onLost: leave3d,
+          // Under 40fps over the first 3 seconds: one tier down (remembered), the CSS garage on low
+          onSlow: () => {
+            quality = settingsFor(downgrade());
+            if (!quality.three) leave3d();
+            else scene?.setQuality(quality);
+          },
+        });
+        // For the ?debug overlay
+        window.__renderStats = () => scene?.stats();
+        return built;
+      } catch {
+        container.remove();
+        return null;
+      }
+    }
+
+    function activate(ready: GarageScene) {
+      scene = ready;
+      for (const { el } of layers) el.style.transform = '';
+      garage.classList.add('is-3d');
+      garage.classList.toggle('is-3d-full', wide.matches);
+      // The drawing makes way for the model; a small loading state until it arrives
+      if (!garage.classList.contains('is-car-in')) carLoading.hidden = false;
+      // Once the crossfade is over, the drawing leaves the page (nothing can show it again, not even
+      // a drag preview of the invisible image); it comes back only if the 3D garage stops
+      window.clearTimeout(detachTimer);
+      detachTimer = window.setTimeout(detachFallback, 900);
+      const drawer = drawers.findIndex((d) => d.getAttribute('aria-expanded') === 'true');
+      ready.setDrawer(drawer < 0 ? null : drawer);
+      ready.setHood(!sheet.hidden);
+      ready.start();
+    }
+
+    // The CSS garage's drawing: the room, the car picture and its shadow, the tires
+    const fallback = [
+      roomView.querySelector('.room-svg'),
+      carLayer.querySelector('picture'),
+      carLayer.querySelector('.car-shadow'),
+      garage.querySelector('.layer.tires'),
+    ].map((el) => ({ el: el!, parent: el!.parentNode!, next: el!.nextSibling }));
+    let detachTimer = 0;
+
+    function detachFallback() {
+      if (!scene) return;
+      for (const part of fallback) part.el.remove();
+    }
+
+    function restoreFallback() {
+      window.clearTimeout(detachTimer);
+      for (const part of fallback) if (!part.el.isConnected) part.parent.insertBefore(part.el, part.next);
+    }
+
+    /** Crossfade from the drawing to the 3D garage at rest */
+    function show3d(ready: GarageScene) {
+      ready.skipArrival();
+      activate(ready);
+    }
+
+    let skip: (() => void) | null = null;
+
+    /** The CSS door fades into the same closed door in 3D, then it rises and the camera drives in */
+    function arrive3d(ready: GarageScene) {
+      garage.classList.add('is-arriving', 'is-3d-instant');
+      activate(ready);
+      door.classList.add('is-fading');
+      window.setTimeout(() => {
+        door.hidden = true;
+        garage.classList.add('is-open');
+        garage.classList.remove('is-3d-instant');
+        ready.playArrival();
+        // Any click or key skips the rest of it
+        skip = () => ready.skipArrival();
+        window.addEventListener('pointerdown', skip);
+        window.addEventListener('keydown', skip);
+      }, 500);
+    }
+
+    function reveal() {
+      garage.classList.remove('is-arriving');
+      if (skip) {
+        window.removeEventListener('pointerdown', skip);
+        window.removeEventListener('keydown', skip);
+        skip = null;
+      }
+    }
+
+    /** Back to the CSS garage (context lost, or leaving the page) */
+    function leave3d() {
+      reveal();
+      scene?.dispose();
+      scene = null;
+      garage.querySelector('.scene3d')?.remove();
+      restoreFallback();
+      garage.classList.remove('is-3d', 'is-3d-full', 'is-3d-instant', 'is-chest-hover', 'is-car-in');
+      carLoading.hidden = true;
+      door.hidden = true;
+      garage.classList.add('is-open');
+    }
+
+    window.addEventListener('pagehide', () => scene && leave3d());
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted && want3d && !scene) load3d(false).then((ready) => ready && show3d(ready));
+    });
+
+    new MutationObserver(() => scene?.setTheme(currentTheme())).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+
+    wide.addEventListener('change', () => {
+      if (!scene) return;
+      garage.classList.toggle('is-3d-full', wide.matches);
+      scene.setFull(wide.matches);
+    });
+
+    // ---------- Wide screens: the HTML buttons sit on the 3D car and chest ----------
+
+    let origin: { x: number; y: number } | null = null;
+    const headerHeight = () => parseFloat(getComputedStyle(root).getPropertyValue('--header-h')) || 82;
+    new ResizeObserver(() => (origin = null)).observe(garage);
+
+    const setBox = (el: HTMLElement, { x, y, w, h }: Rect) => {
+      el.style.setProperty('--x', `${(x + origin!.x).toFixed(1)}px`);
+      el.style.setProperty('--y', `${(y + origin!.y).toFixed(1)}px`);
+      el.style.setProperty('--w', `${w.toFixed(1)}px`);
+      el.style.setProperty('--h', `${h.toFixed(1)}px`);
     };
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) playOnce();
+    function place(layout: GarageLayout) {
+      if (!origin) {
+        // The canvas' corner inside the section
+        const canvas = roomView.querySelector('.scene3d')!.getBoundingClientRect();
+        const section = garage.getBoundingClientRect();
+        origin = { x: canvas.left - section.left, y: canvas.top - section.top };
+      }
+      // Hood mode brings the camera close: keep the hood button and the cards on screen
+      const canvasBox = roomView.querySelector('.scene3d')!;
+      const width = canvasBox.clientWidth;
+      const height = canvasBox.clientHeight;
+      const top = headerHeight() + 72 - origin.y;
+      const car = { ...layout.car };
+      const right = Math.min(car.x + car.w, width - 40);
+      car.x = Math.max(car.x, 40);
+      car.w = Math.max(0, right - car.x);
+      car.y = Math.min(Math.max(car.y, top), height - 200);
+      setBox(carLayer, car);
+      // Hood mode: the spec sheet keeps to the right edge, clear of the hologram
+      carLayer.style.setProperty('--sheet-x', `${(width - 40 - 460 - car.x).toFixed(1)}px`);
+      setBox(chestLabel, layout.label);
+      drawers.forEach((drawer, i) => setBox(drawer, layout.drawers[i]));
+      // The skills card opens to the right of the chest
+      const skillsX = Math.min(Math.max(layout.chest.x + layout.chest.w + 18, 40), width - 320);
+      const skillsY = Math.min(Math.max(layout.chest.y + 8, top), height - 260);
+      toolbox.style.setProperty('--skills-x', `${(skillsX + origin.x).toFixed(1)}px`);
+      toolbox.style.setProperty('--skills-y', `${(skillsY + origin.y).toFixed(1)}px`);
+    }
+
+    // ---------- Parallax: each layer moves against the cursor by its depth (the 3D camera does it there) ----------
+
+    const layers = [...garage.querySelectorAll<HTMLElement>('.layer')].map((el) => ({ el, depth: Number(el.dataset.depth) }));
+    const pointer = { x: 0, y: 0 };
+    let frame = 0;
+
+    function render() {
+      frame = 0;
+      for (const { el, depth } of layers) {
+        const x = (-pointer.x * depth).toFixed(1);
+        const y = (-pointer.y * depth * 0.6).toFixed(1);
+        el.style.transform = pointer.x || pointer.y ? `translate(${x}px, ${y}px)` : '';
+      }
+    }
+
+    function follow(x: number, y: number) {
+      pointer.x = x;
+      pointer.y = y;
+      if (scene) scene.pointer(x, y);
+      else if (!frame) frame = requestAnimationFrame(render);
+    }
+
+    garage.addEventListener(
+      'pointermove',
+      (event) => {
+        if (event.pointerType !== 'mouse' || !finePointer.matches || reducedMotion.matches) return;
+        // -1…1 across the screen
+        follow((event.clientX / window.innerWidth) * 2 - 1, (event.clientY / window.innerHeight) * 2 - 1);
+        // The 3D chest lights up under the cursor
+        if (scene) {
+          const onUi = (event.target as Element).closest('button, a, .glass');
+          garage.classList.toggle('is-chest-hover', scene.hover(event.clientX, event.clientY) && !onUi);
+        }
       },
-      { threshold: 0.35 },
+      { passive: true },
     );
-
-    // The door sequence runs once per page visit; the toggle replays it by hand
-    function playOnce() {
-      if (played) return;
-      played = true;
-      observer.disconnect();
-      setOpen(true);
-    }
-
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      playOnce();
-    } else if (document.documentElement.hasAttribute('data-warp-arrival')) {
-      // Came through the START portal: Base.astro fades the cover out first, then the door opens
-      document.addEventListener('warp:arrived', () => window.setTimeout(playOnce, 300), { once: true });
-    } else {
-      observer.observe(house);
-    }
-
-    toggle.addEventListener('click', () => {
-      played = true;
-      observer.disconnect();
-      setOpen(!section.classList.contains('is-open'));
+    garage.addEventListener('pointerleave', () => {
+      follow(0, 0);
+      scene?.hover(-1, -1);
+      garage.classList.remove('is-chest-hover');
     });
+
+    // ---------- Toolbox: one drawer open at a time ----------
+
+    const drawers = [...garage.querySelectorAll<HTMLButtonElement>('.drawer')];
+
+    function setDrawer(open: HTMLButtonElement | null) {
+      for (const drawer of drawers) {
+        const isOpen = drawer === open;
+        drawer.setAttribute('aria-expanded', String(isOpen));
+        document.getElementById(drawer.getAttribute('aria-controls')!)!.hidden = !isOpen;
+      }
+      scene?.setDrawer(open ? drawers.indexOf(open) : null);
+    }
+
+    for (const drawer of drawers) {
+      drawer.addEventListener('click', () => setDrawer(drawer.getAttribute('aria-expanded') === 'true' ? null : drawer));
+    }
+
+    // Clicking the 3D chest itself opens the next drawer (after the last one, it closes)
+    garage.addEventListener('click', (event) => {
+      if (!scene || !garage.classList.contains('is-3d-full')) return;
+      if ((event.target as Element).closest('button, a, .glass')) return;
+      if (!scene.hover(event.clientX, event.clientY)) return;
+      const current = drawers.findIndex((d) => d.getAttribute('aria-expanded') === 'true');
+      setDrawer(drawers[current + 1] ?? null);
+    });
+
+    // The HTML drawer buttons light the 3D chest up too
+    for (const type of ['pointerenter', 'focusin']) chest.addEventListener(type, () => scene?.setChestHover(true));
+    for (const type of ['pointerleave', 'focusout']) chest.addEventListener(type, () => scene?.setChestHover(false));
+
+    // ---------- Pop the hood ----------
+
+    const hoodToggle = garage.querySelector<HTMLButtonElement>('.hood-toggle')!;
+    const sheet = garage.querySelector<HTMLElement>('#hood-sheet')!;
+
+    function setHood(open: boolean) {
+      hoodToggle.setAttribute('aria-expanded', String(open));
+      hoodToggle.textContent = (open ? hoodToggle.dataset.labelClose : hoodToggle.dataset.labelOpen) ?? '';
+      sheet.hidden = !open;
+      // 3D: the camera moves to the front of the car and a holographic engine appears over the hood
+      garage.classList.toggle('is-hood', open);
+      scene?.setHood(open);
+    }
+
+    hoodToggle.addEventListener('click', () => setHood(sheet.hidden));
+
+    // Escape closes what's open, and gives focus back to the button that opened it
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      const drawer = drawers.find((d) => d.getAttribute('aria-expanded') === 'true');
+      if (drawer) {
+        setDrawer(null);
+        drawer.focus();
+      }
+      if (!sheet.hidden) {
+        setHood(false);
+        hoodToggle.focus();
+      }
+    });
+
+    // ---------- Hidden tab: every loop holds still (the 3D scene pauses itself) ----------
+
+    const pause = () => garage.classList.toggle('is-paused', document.hidden);
+    document.addEventListener('visibilitychange', pause);
+    pause();
+
+    // Dev only: lets the screenshot script hold the arrival at a given moment
+    if (import.meta.env.DEV) (window as unknown as { __garage: () => GarageScene | null }).__garage = () => scene;
   }
 </script>
 
 <style>
-  /* ---------- The garage world: own palette and fonts, scoped to this section ---------- */
+  /* ---------- The garage: own palette, scoped to this section ---------- */
 
-  /* Dark theme (default): a cozy evening, bulbs glowing */
-  .world-garage {
-    --g-bg: #0E1118;
-    --g-surface: #161B26;
-    --g-line: #2A3242;
-    --g-text: #F2F2F2;
-    --g-text-2: #C9C9CF;
-    --g-muted: #9A9AA3;
-    --g-accent: #4A9EFF;
-    --g-on-accent: #0B1220;
+  .garage {
+    --ink: #e6f3ff;
+    --ink-muted: #a9c4e8;
+    --ink-faint: #8fb3d9;
+    --ink-accent: #7cc4ff;
+    --ink-label: #8fd4ff;
+    --glass-bg: rgba(150, 195, 255, 0.1);
+    --glass-border: rgba(190, 224, 255, 0.22);
+    --glass-highlight: rgba(255, 255, 255, 0.25);
+    --glass-shadow: rgba(2, 8, 24, 0.55);
+    --glass-blur: blur(20px) saturate(170%);
+    --chip-bg: rgba(190, 224, 255, 0.1);
+    --chip-border: rgba(190, 224, 255, 0.18);
+    --rule: rgba(190, 224, 255, 0.12);
+    --below-room: #0b101b;
 
-    --g-siding: #1A1B20;
-    --g-siding-line: rgb(0 0 0 / 0.4);
-    --g-eave: #0B0C10;
-    --g-trim: #2A2D36;
-    --g-apron: #24252B;
-    --g-wall: #14223A;
-    --g-panel-line: rgb(0 0 0 / 0.32);
-    --g-ceiling: #0D1729;
-    --g-floor: #34302B;
-    --g-floor-edge: #1E1C19;
-    --g-door: #3A3F4B;
-    --g-door-seam: #1F2229;
-    --g-door-glass: #101B2C;
-    --g-cord: #0B0C10;
-    --g-bulb-off: #5A5040;
-    --g-shade: rgb(4 6 12 / 0.8);
-    --g-credit: #B4B4BC;
-    --g-credit-hover: #7DB8FF;
-    --g-porch-glass: #FFE2A8;
-
-    /* Strength of each light, faded with opacity so the theme switch stays smooth */
-    --g-porch-glow: 1;
-    --g-lit: 1;
-    --g-bulb-glow: 1;
-    --g-spill: 1;
-    --g-sun: 0;
-
-    --g-warm: 255 217 160;
-    --g-font-head: 'Barlow Condensed', 'Arial Narrow', sans-serif;
-    --g-font-body: 'Barlow', system-ui, sans-serif;
-    --g-font-label: 'JetBrains Mono', ui-monospace, monospace;
-
-    /* Headlight centers over the car image, as a share of its box */
-    --hl-left-x: 19.5%;
-    --hl-right-x: 80.5%;
-    --hl-y: 55.5%;
+    /* The room */
+    --ceiling: #0b1424;
+    --side: #101c33;
+    --back: #18294a;
+    --floor: #262d3c;
+    --back-seam: #0e1a30;
+    --side-seam: #0b1528;
+    --tile: #1e2431;
+    --stain: #141821;
+    --seam: #05090f;
+    --track: #3a4560;
+    --opener: #1c2740;
+    --opener-edge: #2e3b58;
+    --window-frame: #2a3b5a;
+    --window-glass: #040a18;
+    --pegboard: #1f2e4c;
+    --pegboard-edge: #2c3e62;
+    --tool-a: #8fb3d9;
+    --tool-b: #6e8bb8;
+    --accent-blue: #4a9eff;
+    --radio: #2a3b5a;
+    --radio-edge: #3e5680;
+    --mug: #e6f3ff;
+    --shelf: #2e3b58;
+    --box: #5a6a88;
+    --box-dark: #4c5c7a;
+    --bottle-pale: #bfe0ff;
 
     position: relative;
-    min-height: 100vh;
-    padding: 32px 0 112px;
-    background: var(--g-bg);
-    color: var(--g-text);
-    font-family: var(--g-font-body);
-    overflow: hidden;
+    /* Starts under the floating glass header */
+    margin-top: calc(var(--header-h) * -1);
+    min-height: 1360px;
+    overflow: clip;
+    background: var(--below-room);
+    color: var(--ink);
+    font-family: var(--font-body);
   }
 
-  /* Light theme: a cozy Saturday afternoon, sun through the door windows, porch lights off */
-  :global([data-theme='light']) .world-garage {
-    --g-bg: #F4F1EB;
-    --g-surface: #FFFFFF;
-    --g-line: #D9D3C8;
-    --g-text: #14223A;
-    --g-text-2: #33465F;
-    --g-muted: #52627A;
-    --g-accent: #1F5FC4;
-    --g-on-accent: #FFFFFF;
+  /* Daytime: light blue walls, warm concrete, daylight in the window, the bulbs off */
+  :global([data-theme='light']) .garage {
+    --ink: #0a1a33;
+    --ink-muted: #2e4466;
+    --ink-faint: #3f5578;
+    --ink-accent: #0a56b8;
+    --ink-label: #0a56b8;
+    --glass-bg: rgba(255, 255, 255, 0.55);
+    --glass-border: rgba(10, 42, 94, 0.12);
+    --glass-highlight: rgba(255, 255, 255, 0.8);
+    --glass-shadow: rgba(10, 42, 94, 0.18);
+    --chip-bg: rgba(255, 255, 255, 0.6);
+    --chip-border: rgba(10, 42, 94, 0.14);
+    --rule: rgba(10, 42, 94, 0.12);
+    --below-room: #cdc5b8;
 
-    --g-siding: #E8E4DC;
-    --g-siding-line: rgb(60 50 40 / 0.14);
-    --g-eave: #C9C3B8;
-    --g-trim: #F7F5F0;
-    --g-apron: #D8D2C8;
-    --g-wall: #C9DDF2;
-    --g-panel-line: rgb(20 34 58 / 0.12);
-    --g-ceiling: #B4CBE3;
-    --g-floor: #CFC7BB;
-    --g-floor-edge: #A89F92;
-    --g-door: #F2F0EB;
-    --g-door-seam: #C9C3B8;
-    --g-door-glass: #9FB8D3;
-    --g-cord: #3A3F4B;
-    --g-bulb-off: #D8CBB0;
-    --g-shade: rgb(30 40 60 / 0.35);
-    --g-credit: #3A475B;
-    --g-credit-hover: #163F85;
-    --g-porch-glass: #D8D4CC;
-
-    --g-porch-glow: 0;
-    --g-lit: 0.35;
-    --g-bulb-glow: 0.45;
-    --g-spill: 0.3;
-    --g-sun: 1;
+    --ceiling: #dce8f5;
+    --side: #b6cde6;
+    --back: #c9ddf2;
+    --floor: #d8d0c3;
+    --back-seam: #b4cae3;
+    --side-seam: #a3bcd9;
+    --tile: #c6bdaf;
+    --stain: #bfb6a8;
+    --seam: #6a7c96;
+    --track: #8a9ab5;
+    --opener: #eef3f9;
+    --opener-edge: #9fb0c8;
+    --window-frame: #8fa8c8;
+    --window-glass: url('#day-sky');
+    --pegboard: #e2ebf6;
+    --pegboard-edge: #a9bedb;
+    --tool-a: #5f82b0;
+    --tool-b: #46658f;
+    --accent-blue: #2b6cdb;
+    --radio: #4a6a9a;
+    --radio-edge: #3a5580;
+    --mug: #ffffff;
+    --shelf: #8fa3c2;
+    --box: #7f92b0;
+    --box-dark: #6f84a6;
   }
 
-  .wrap {
-    max-width: 1120px;
-    margin: 0 auto;
-    padding: 0 24px;
-  }
-
-  /* ---------- Back link and header row ---------- */
-
-  .back {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    margin-bottom: 40px;
-    padding: 0 14px;
-    border: 1px solid var(--g-line);
-    font-family: var(--g-font-label);
-    font-size: 13px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--g-text-2);
-    text-decoration: none;
-  }
-
-  .back:hover {
-    border-color: var(--g-accent);
-    color: var(--g-accent);
-  }
-
-  .bay-head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 24px;
-    margin-bottom: 40px;
-  }
-
-  .label {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 0 0 12px;
-    font-family: var(--g-font-label);
-    font-size: 13px;
-    letter-spacing: 0.18em;
-    color: var(--g-accent);
-  }
-
-  .label::before {
-    content: '';
-    width: 28px;
-    height: 2px;
-    background: var(--g-accent);
-  }
-
-  .title {
+  .garage :where(p, h1, h2, dl, dd, ul) {
     margin: 0;
-    font-family: var(--g-font-head);
-    font-style: italic;
-    font-weight: 800;
-    font-size: clamp(44px, 7.5vw, 96px);
-    line-height: 0.92;
-    letter-spacing: -0.01em;
-    text-transform: uppercase;
-    color: var(--g-text);
   }
 
-  .title-accent {
-    color: var(--g-accent);
+  .glass {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      inset 0 1px 0 var(--glass-highlight),
+      0 24px 70px var(--glass-shadow);
+    color: var(--ink);
   }
 
-  .door-toggle {
-    min-height: 44px;
-    padding: 0 16px;
-    border: 1px solid var(--g-line);
-    border-radius: 0;
-    background: var(--g-surface);
-    color: var(--g-text);
-    font-family: var(--g-font-label);
-    font-size: 13px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    cursor: pointer;
+  /* No backdrop blur: a more opaque glass keeps the text readable */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .garage {
+      --glass-bg: rgba(16, 32, 62, 0.85);
+    }
+
+    :global([data-theme='light']) .garage {
+      --glass-bg: rgba(255, 255, 255, 0.85);
+    }
   }
 
-  .door-toggle:hover {
-    border-color: var(--g-accent);
-    color: var(--g-accent);
+  /* The script moves the layers against the cursor (transform only, a short ease) */
+  .layer {
+    transition:
+      transform 0.25s ease-out,
+      opacity 0.7s ease;
   }
 
-  :global(html:not(.js)) .door-toggle {
+  .bottom {
+    transition: opacity 0.7s ease;
+  }
+
+  /* ---------- The room ---------- */
+
+  .room {
+    position: absolute;
+    top: -12px;
+    right: -24px;
+    left: -24px;
+    height: 984px;
+    pointer-events: none;
+  }
+
+  .room-view {
+    position: relative;
+    height: 100%;
+  }
+
+  .room-svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* The room fades into the floor below it */
+  .room-view::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 140px;
+    background: linear-gradient(transparent, var(--below-room));
+  }
+
+  .vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 45%, transparent 45%, rgba(3, 7, 16, 0.65) 100%);
+  }
+
+  :global([data-theme='light']) .vignette {
     display: none;
   }
 
-  /* ---------- House front (sizes in cqw so the whole facade scales as one picture) ---------- */
-
-  .house {
-    container-type: inline-size;
-    position: relative;
-    padding: 5cqw 9cqw 0;
-    overflow: hidden;
-    background-color: var(--g-siding);
-    background-image: repeating-linear-gradient(
-      to bottom,
-      transparent 0 2.1cqw,
-      var(--g-siding-line) 2.1cqw 2.3cqw
-    );
-  }
-
-  /* Eave along the top of the wall */
-  .house::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1.8cqw;
-    background: var(--g-eave);
-  }
-
-  .porch-light {
-    position: absolute;
-    top: 15cqw;
-    width: 2.6cqw;
-    height: 4cqw;
-    border: 0.35cqw solid var(--g-eave);
-    border-radius: 0.4cqw 0.4cqw 0.2cqw 0.2cqw;
-    background: var(--g-porch-glass);
-  }
-
-  /* Warm pool of light on the siding (off in the afternoon) */
-  .porch-light::before {
-    content: '';
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 18cqw;
-    height: 22cqw;
-    transform: translate(-50%, -45%);
-    background: radial-gradient(closest-side, rgb(var(--g-warm) / 0.35), rgb(var(--g-warm) / 0.08) 55%, transparent);
-    opacity: var(--g-porch-glow);
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-  }
-
-  .porch-left {
-    left: 3.2cqw;
-  }
-
-  .porch-right {
-    right: 3.2cqw;
-  }
-
-  .frame {
-    position: relative;
-    padding: 1.4cqw 1.4cqw 0;
-    background: var(--g-trim);
-    box-shadow: 0 0 0 0.3cqw var(--g-eave);
-  }
-
-  .apron {
-    height: 6cqw;
-    margin: 0 -9cqw;
-    background: var(--g-apron);
-    border-top: 0.3cqw solid var(--g-eave);
-  }
-
-  /* Light thrown out of the open garage: onto the wall around the frame and the driveway */
-  .spill {
-    position: absolute;
-    pointer-events: none;
-    opacity: 1;
-    transition: opacity 1.6s ease 0.6s;
-  }
-
-  .spill::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    opacity: var(--g-spill);
-    transition: opacity 0.3s ease;
-  }
-
-  .spill-halo {
-    inset: -4cqw -6cqw -2cqw;
-    z-index: -1;
-  }
-
-  .spill-halo::before {
-    background: radial-gradient(closest-side, rgb(var(--g-warm) / 0.22), transparent);
-  }
-
-  .spill-floor {
-    top: 100%;
-    left: -8cqw;
-    right: -8cqw;
-    z-index: 1;
-    height: 6.3cqw;
-    clip-path: polygon(12% 0, 88% 0, 100% 100%, 0 100%);
-  }
-
-  .spill-floor::before {
-    background: linear-gradient(rgb(var(--g-warm) / 0.28), rgb(var(--g-warm) / 0) 90%);
-  }
-
-  /* ---------- Inside the garage (sizes in cqw of the opening) ---------- */
-
-  .garage {
-    container-type: inline-size;
-    position: relative;
-    aspect-ratio: 16 / 9;
-    overflow: hidden;
-    background: var(--g-wall);
-  }
-
-  .interior,
-  .interior > * {
-    position: absolute;
-  }
-
-  .interior {
-    inset: 0;
-  }
-
-  /* Painted wood panelling: thin vertical seams */
-  .wall {
-    inset: 0 0 22% 0;
-    background-color: var(--g-wall);
-    background-image: repeating-linear-gradient(
-      90deg,
-      transparent 0 5.8cqw,
-      var(--g-panel-line) 5.8cqw 6cqw
-    );
-  }
-
   .ceiling {
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1.6cqw;
-    background: var(--g-ceiling);
+    fill: var(--ceiling);
+  }
+
+  .side {
+    fill: var(--side);
+  }
+
+  .back {
+    fill: var(--back);
   }
 
   .floor {
-    inset: 78% 0 0 0;
-    background: var(--g-floor);
-    border-top: 0.3cqw solid var(--g-floor-edge);
+    fill: var(--floor);
   }
 
-  /* Pale diagonal patches of sun on the floor (light theme only) */
+  .back-seams {
+    stroke: var(--back-seam);
+    stroke-width: 2;
+  }
+
+  .side-seams {
+    stroke: var(--side-seam);
+    stroke-width: 2;
+  }
+
+  .tiles {
+    stroke: var(--tile);
+    stroke-width: 2;
+  }
+
+  .stain {
+    fill: var(--stain);
+    opacity: 0.7;
+  }
+
+  .seam {
+    stroke: var(--seam);
+  }
+
+  .seam-floor {
+    stroke-width: 10;
+    opacity: 0.55;
+  }
+
+  .seam-top {
+    stroke-width: 8;
+    opacity: 0.5;
+  }
+
+  :global([data-theme='light']) .seam {
+    opacity: 0.18;
+  }
+
+  .track {
+    stroke: var(--track);
+    stroke-width: 6;
+    stroke-linecap: round;
+  }
+
+  .opener {
+    fill: var(--opener);
+    stroke: var(--opener-edge);
+    stroke-width: 2;
+  }
+
+  .opener-rail {
+    stroke: var(--track);
+    stroke-width: 4;
+  }
+
+  .led,
+  .led-glow {
+    fill: #4a9eff;
+    animation: led 2s steps(1, end) infinite;
+  }
+
+  .led-glow {
+    fill-opacity: 0.3;
+  }
+
+  .window-frame {
+    fill: var(--window-frame);
+  }
+
+  .window-frame-line {
+    stroke: var(--window-frame);
+    stroke-width: 6;
+  }
+
+  .window-glass {
+    fill: var(--window-glass);
+  }
+
+  .moon {
+    fill: #e6f3ff;
+  }
+
+  .star {
+    fill: #bfe0ff;
+    animation: twinkle 2.6s steps(3, end) infinite;
+  }
+
+  .day-only {
+    display: none;
+  }
+
+  :global([data-theme='light']) .day-only {
+    display: inline;
+  }
+
+  :global([data-theme='light']) .night-only {
+    display: none;
+  }
+
   .sun {
-    bottom: 0;
-    width: 22%;
-    height: 21%;
-    background: rgb(255 248 225 / 0.45);
-    opacity: var(--g-sun);
-    transition: opacity 0.3s ease;
+    fill: #fff3c4;
   }
 
-  .sun-left {
-    left: 18%;
-    clip-path: polygon(20% 0, 62% 0, 46% 100%, 0 100%);
-  }
-
-  .sun-right {
-    left: 50%;
-    clip-path: polygon(38% 0, 80% 0, 100% 100%, 54% 100%);
-  }
-
-  .rug {
-    left: 24%;
-    right: 24%;
-    bottom: 3%;
-    height: 7.5%;
-    background: #1B3157;
-    border: 0.35cqw solid #3D6199;
-  }
-
-  /* Flat props, kept to the sides so the car stays the focus */
-  .prop {
-    height: auto;
-  }
-
-  .poster {
-    top: 6%;
-    width: 8%;
-  }
-
-  .poster-left {
-    left: 7%;
-  }
-
-  .poster-right {
-    right: 7%;
+  .cloud {
+    fill: #ffffff;
+    opacity: 0.9;
   }
 
   .pegboard {
-    left: 3%;
-    top: 30%;
-    width: 17%;
+    fill: var(--pegboard);
+    stroke: var(--pegboard-edge);
+    stroke-width: 3;
   }
 
-  .shelves {
-    right: 4%;
-    top: 29%;
-    width: 14%;
+  .tool-a {
+    fill: var(--tool-a);
   }
 
-  .extinguisher {
-    right: 1.2%;
-    top: 46%;
-    width: 2.4%;
+  .tool-b {
+    fill: var(--tool-b);
   }
 
-  .toolchest {
-    left: 3.5%;
-    bottom: 7%;
-    width: 11%;
+  .accent {
+    fill: var(--accent-blue);
   }
 
-  .stool {
-    left: 15.5%;
-    bottom: 7%;
-    width: 5.5%;
+  .wood {
+    fill: #7a5536;
   }
 
-  .workbench {
-    right: 3%;
-    bottom: 7%;
-    width: 19%;
+  .wood-dark {
+    fill: #5a3d26;
   }
 
-  .tires {
-    right: 9.5%;
-    bottom: 7%;
-    width: 7%;
+  .radio {
+    fill: var(--radio);
+    stroke: var(--radio-edge);
+    stroke-width: 2;
   }
 
-  /* Lights off: a veil over the room; lights on: warm pools under the bulbs */
-  .shade {
-    inset: 0;
-    background: var(--g-shade);
-    opacity: 0;
+  .speaker {
+    fill: none;
+    stroke: var(--accent-blue);
+    stroke-width: 3;
   }
 
-  .lit {
-    inset: 0;
-    opacity: 1;
+  .mug {
+    fill: var(--mug);
   }
 
-  .lit::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(ellipse 22cqw 20cqw at 26% 12%, rgb(var(--g-warm) / 0.2), transparent 70%),
-      radial-gradient(ellipse 22cqw 20cqw at 50% 15%, rgb(var(--g-warm) / 0.2), transparent 70%),
-      radial-gradient(ellipse 22cqw 20cqw at 74% 12%, rgb(var(--g-warm) / 0.2), transparent 70%),
-      radial-gradient(ellipse 50cqw 10cqw at 50% 88%, rgb(var(--g-warm) / 0.14), transparent 70%);
-    opacity: var(--g-lit);
-    transition: opacity 0.3s ease;
+  .shelf {
+    fill: var(--shelf);
   }
 
-  /* Edison bulb on a cord: socket, glass, and a warm glow that switches on */
-  .bulb {
-    top: 0;
-    left: var(--x);
-    width: 2cqw;
-    height: calc(var(--cord) + 3.4cqw);
-    transform: translateX(-50%);
+  .box {
+    fill: var(--box);
   }
 
-  .bulb::before {
-    content: '';
-    position: absolute;
-    left: 50%;
-    top: 0;
-    width: 0.2cqw;
-    height: var(--cord);
-    transform: translateX(-50%);
-    background: var(--g-cord);
+  .box-dark {
+    fill: var(--box-dark);
   }
 
-  .bulb::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    top: var(--cord);
-    width: 1cqw;
-    height: 1cqw;
-    transform: translateX(-50%);
-    background: var(--g-cord);
+  .bottle-pale {
+    fill: var(--bottle-pale);
   }
 
-  .bulb-glass,
-  .bulb-on {
-    position: absolute;
-    left: 0;
-    top: calc(var(--cord) + 0.9cqw);
-    width: 2cqw;
-    height: 2.4cqw;
-    border-radius: 50% 50% 45% 45%;
+  .bottle-red {
+    fill: #d63a2f;
+  }
+
+  /* ---------- Bulbs: sway on their cords, light cones, flicker, dust in the beams ---------- */
+
+  .cord {
+    stroke: #3a4458;
+    stroke-width: 2;
+  }
+
+  .socket {
+    fill: #3a4458;
   }
 
   .bulb-glass {
-    background: var(--g-bulb-off);
+    fill: #ffe2b0;
   }
 
-  .bulb-on {
-    background: #FFD9A0;
-    opacity: 1;
+  .glow {
+    fill: url('#bulb-glow');
   }
 
-  .bulb-on::before {
-    content: '';
+  /* fill-opacity, so the flicker (opacity) dims them on top of their own faintness */
+  .cone {
+    fill: #ffcd8c;
+    fill-opacity: 0.07;
+  }
+
+  .pool {
+    fill: #ffc882;
+    fill-opacity: 0.1;
+  }
+
+  .sway {
+    transform-box: fill-box;
+    transform-origin: top center;
+    animation: sway var(--sway) ease-in-out infinite;
+  }
+
+  .flick {
+    animation: flick 7s steps(1, end) infinite;
+  }
+
+  .dust circle {
+    fill: #ffe2b0;
+    opacity: 0;
+    animation: dust 7s linear infinite;
+  }
+
+  /* Daytime: the bulbs are off (just the glass), no beams, no dust */
+  :global([data-theme='light']) .glow,
+  :global([data-theme='light']) .cone,
+  :global([data-theme='light']) .pool,
+  :global([data-theme='light']) .dust {
+    display: none;
+  }
+
+  :global([data-theme='light']) .bulb-glass {
+    fill: #f3ead8;
+  }
+
+  /* Arrival: the bulbs are off behind the closed door, and flicker on as it opens */
+  :global(html.js) .garage:not(.is-open) .bulb,
+  :global(html.js) .garage:not(.is-open) .dust {
+    opacity: 0;
+  }
+
+  .garage.is-open .bulb {
+    animation: power-on 1.2s steps(1, end) var(--delay) both;
+  }
+
+  .garage.is-open .dust {
+    animation: fade-in 1s ease 1.6s both;
+  }
+
+  /* ---------- Foreground: tires, the car, the toolbox ---------- */
+
+  .tires {
     position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 16cqw;
-    height: 16cqw;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    background: radial-gradient(closest-side, rgb(var(--g-warm) / 0.55), rgb(var(--g-warm) / 0.12) 45%, transparent);
-    opacity: var(--g-bulb-glow);
-    transition: opacity 0.3s ease;
+    top: 700px;
+    right: 7%;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
 
-  /* ---------- The car ---------- */
+  .tires span {
+    width: 190px;
+    height: 64px;
+    border: 7px solid #232b3a;
+    border-radius: 32px;
+    background: #0e121a;
+  }
+
+  :global([data-theme='light']) .tires span {
+    border-color: #6b7486;
+    background: #3a404c;
+  }
 
   .car {
     position: absolute;
+    top: 470px;
     left: 50%;
-    bottom: 10%;
-    z-index: 2;
-    width: min(54cqw, 620px);
-    opacity: 1;
-    transform: translate(-50%, 0);
-    transition:
-      opacity 1.2s ease-out 1.4s,
-      transform 1.2s cubic-bezier(0.2, 0.7, 0.2, 1) 1.4s;
+    z-index: 1;
+    width: clamp(420px, 46vw, 600px);
+    margin-left: calc(clamp(420px, 46vw, 600px) / -2);
+  }
+
+  /* Hood open: the spec sheet comes in front of the toolbox (each layer is its own stacking context) */
+  .car:has(.sheet:not([hidden])) {
+    z-index: 3;
   }
 
   .car img {
@@ -937,89 +1133,429 @@ const bulbs = [
     height: auto;
   }
 
-  /* Contact shadow under the bumper */
   .car-shadow {
     position: absolute;
-    left: 2%;
-    right: 2%;
-    bottom: -5%;
-    height: 12%;
-    background: radial-gradient(closest-side, rgb(0 0 0 / 0.75), rgb(0 0 0 / 0.35) 60%, transparent);
+    right: 4%;
+    bottom: -16px;
+    left: 4%;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    filter: blur(12px);
   }
 
-  /* A faint mirror image on the floor, fading out quickly */
-  .car-reflection {
+  :global([data-theme='light']) .car-shadow {
+    background: rgba(40, 30, 20, 0.35);
+  }
+
+  .hood {
     position: absolute;
-    top: 100%;
-    left: 0;
-    width: 100%;
-    opacity: 0.08;
-    transform: scaleY(-1);
-    -webkit-mask-image: linear-gradient(to top, #000, transparent 30%);
-    mask-image: linear-gradient(to top, #000, transparent 30%);
+    top: -64px;
+    left: 50%;
+    transform: translateX(-50%);
   }
 
-  .hl {
+  .hood-toggle {
+    min-height: 44px;
+    padding: 0 20px;
+    border-radius: 999px;
+    font-family: 'Inter Tight', var(--font-body);
+    font-weight: 600;
+    font-size: 15px;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .sheet {
     position: absolute;
-    top: var(--hl-y);
-    width: 24%;
-    aspect-ratio: 1.5;
-    background: radial-gradient(
-      closest-side,
-      rgb(255 255 250) 0,
-      rgb(255 240 205 / 0.75) 30%,
-      rgb(var(--g-warm) / 0.25) 65%,
-      transparent
-    );
-    mix-blend-mode: screen;
-    opacity: 0;
-    transform: translate(-50%, -50%);
-    pointer-events: none;
+    top: 0;
+    left: 50%;
+    z-index: 2;
+    width: 460px;
+    max-width: calc(100vw - 32px);
+    margin-left: -230px;
+    padding: 22px 26px 12px;
+    border-radius: 24px;
   }
 
-  .hl-left {
-    left: var(--hl-left-x);
+  /* These two float over the bright car: denser glass keeps their small text readable */
+  .sheet,
+  .skills {
+    --glass-bg: rgba(10, 22, 48, 0.72);
   }
 
-  .hl-right {
-    left: var(--hl-right-x);
+  :global([data-theme='light']) .sheet,
+  :global([data-theme='light']) .skills {
+    --glass-bg: rgba(255, 255, 255, 0.84);
+  }
+
+  .sheet[hidden],
+  .skills[hidden] {
+    display: none;
+  }
+
+  .sheet:not([hidden]),
+  .skills:not([hidden]) {
+    animation: pop 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .sheet-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(124, 196, 255, 0.5);
+  }
+
+  .sheet-title,
+  .skills-title {
+    font-family: 'Inter Tight', var(--font-body);
+    font-weight: 700;
+    font-size: 20px;
+    line-height: 1.2;
+  }
+
+  .sheet-tag,
+  .chest-label {
+    font-family: var(--font-pixel);
+    color: var(--ink-label);
+  }
+
+  .sheet-tag {
+    font-size: 8px;
+  }
+
+  .spec {
+    display: grid;
+    grid-template-columns: minmax(0, 120px) minmax(0, 1fr);
+    gap: 12px;
+    align-items: baseline;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .spec:last-child {
+    border-bottom: 0;
+  }
+
+  .spec dt {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--ink-muted);
+  }
+
+  .spec dd {
+    font-size: 15px;
+  }
+
+  .toolbox {
+    position: absolute;
+    top: 560px;
+    left: 5%;
+    z-index: 1;
+    width: 230px;
+  }
+
+  .chest {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 10px;
+    border: 3px solid #102d60;
+    border-radius: 6px;
+    background: #1a3f80;
+    box-shadow: 0 30px 50px rgba(0, 0, 0, 0.5);
+  }
+
+  .chest-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 26px;
+    border-radius: 3px;
+    background: #102d60;
+    font-size: 7px;
+    color: #8fd4ff;
+  }
+
+  .drawer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 52px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 4px;
+    background: #2a62be;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition:
+      transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+      background-color 0.2s;
+  }
+
+  .drawer:hover {
+    background: #3470cf;
+  }
+
+  .drawer[aria-expanded='true'] {
+    background: #3b7be0;
+    transform: translateX(20px);
+  }
+
+  .drawer-label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: #e6f3ff;
+  }
+
+  .handle {
+    width: 38px;
+    height: 4px;
+    border-radius: 2px;
+    background: #9cc4ff;
+  }
+
+  .casters {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 12px;
+  }
+
+  .casters span {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #1a202c;
+  }
+
+  .skills {
+    position: absolute;
+    top: 40px;
+    left: 244px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 280px;
+    padding: 18px 20px;
+    border-radius: 20px;
+  }
+
+  .skills-title {
+    font-size: 18px;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .chips li {
+    padding: 6px 12px;
+    border: 1px solid var(--chip-border);
+    border-radius: 999px;
+    background: var(--chip-bg);
+    font-size: 13px;
+  }
+
+  .drawer:focus-visible,
+  .hood-toggle:focus-visible,
+  .garage a:focus-visible {
+    outline: 2px solid var(--ink-accent);
+    outline-offset: 2px;
+  }
+
+  .drawer:focus-visible {
+    outline-color: #bfe0ff;
+  }
+
+  /* ---------- Glass text panels ---------- */
+
+
+  .bottom {
+    position: absolute;
+    right: 40px;
+    bottom: 36px;
+    left: 40px;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 20px;
+  }
+
+  .bio {
+    flex: 999 1 560px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 26px 30px;
+    border-radius: 28px;
+  }
+
+  .bio-lead {
+    font-size: 19px;
+    line-height: 1.6;
+  }
+
+  .bio-more {
+    font-size: 16px;
+    line-height: 1.65;
+    color: var(--ink-muted);
+  }
+
+  .next-card {
+    flex: 1 1 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 26px 30px;
+    border-radius: 28px;
+  }
+
+  .hint {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--ink-muted);
+  }
+
+  .next {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 0 22px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #4f8bff, #2563eb);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      0 10px 30px rgba(37, 99, 235, 0.45);
+    font-family: 'Inter Tight', var(--font-body);
+    font-weight: 600;
+    color: #fff;
+    text-decoration: none;
   }
 
   .credit {
     position: absolute;
-    right: 1.5%;
-    bottom: 1.5%;
-    z-index: 2;
-    padding: 1px 4px;
-    background: var(--g-floor);
-    font-family: var(--g-font-label);
+    top: -28px;
+    right: 8px;
+    font-family: var(--font-mono);
     font-size: 11px;
-    line-height: 1.4;
-    color: var(--g-credit);
+    color: var(--ink-faint);
+  }
+
+  .credit a {
+    color: inherit;
     text-decoration: none;
   }
 
-  .credit:hover {
-    color: var(--g-credit-hover);
+  .credit a:hover {
+    color: var(--ink-accent);
   }
 
-  /* ---------- Sectional door ---------- */
+  /* ModelCredit is its own component: reach into it */
+  .credit :global(.credit-model a) {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* The drawing's credit with the CSS garage, the model's with the 3D one */
+  .credit :global(.credit-model),
+  .garage.is-3d .credit-drawing {
+    display: none;
+  }
+
+  .garage.is-3d .credit :global(.credit-model) {
+    display: inline;
+  }
+
+  /* While the model downloads: a small pill where the car will be */
+  .car-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: 10px 16px;
+    border-radius: 999px;
+    transform: translate(-50%, -50%);
+    font-family: var(--font-pixel);
+    font-size: 8px;
+    white-space: nowrap;
+  }
+
+  .car-loading[hidden] {
+    display: none;
+  }
+
+  .car-loading-light {
+    width: 8px;
+    height: 8px;
+    background: var(--ink-accent);
+    animation: blink 1s steps(1) infinite;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* ---------- Arrival door ---------- */
 
   .door {
-    position: absolute;
+    display: none;
+  }
+
+  :global(html.js) .door {
+    position: fixed;
     inset: 0;
-    z-index: 3;
+    z-index: 70;
     display: flex;
     flex-direction: column;
-    transform: translateY(-94%);
-    transition: transform 2.6s cubic-bezier(0.45, 0.05, 0.3, 1);
+    background: #0b1424;
+    transition: transform 2.4s cubic-bezier(0.45, 0.05, 0.3, 1);
+  }
+
+  .door[hidden] {
+    display: none !important;
+  }
+
+  .garage.is-open .door {
+    transform: translateY(-101%);
   }
 
   .panel {
     position: relative;
     flex: 1;
-    background: var(--g-door);
-    border-bottom: 0.35cqw solid var(--g-door-seam);
+    background: #22447f;
+    border-bottom: 6px solid #142c58;
+  }
+
+  :global([data-theme='light']) .panel {
+    background: #e2eaf4;
+    border-bottom-color: #a9bcd6;
   }
 
   /* Four pressed sections per panel */
@@ -1027,13 +1563,12 @@ const bulbs = [
     content: '';
     position: absolute;
     inset: 18% 0;
-    background:
-      linear-gradient(
+    background: linear-gradient(
         90deg,
         transparent 5%,
-        rgb(0 0 0 / 0.16) 5% 5.8%,
+        rgb(0 0 0 / 0.18) 5% 5.8%,
         rgb(255 255 255 / 0.05) 5.8% 94.2%,
-        rgb(0 0 0 / 0.16) 94.2% 95%,
+        rgb(0 0 0 / 0.18) 94.2% 95%,
         transparent 95%
       )
       0 0 / 25% 100% repeat-x;
@@ -1049,327 +1584,503 @@ const bulbs = [
     content: none;
   }
 
-  .window {
+  .panel-windows span {
     flex: 1;
-    border: 0.45cqw solid var(--g-door-seam);
-    background-color: var(--g-door-glass);
-    background-image: linear-gradient(160deg, rgb(255 255 255 / 0.14) 0 30%, transparent 30%);
+    border: 6px solid #142c58;
+    background: #0b1830 linear-gradient(160deg, rgb(255 255 255 / 0.14) 0 30%, transparent 30%);
+  }
+
+  :global([data-theme='light']) .panel-windows span {
+    border-color: #a9bcd6;
+    background-color: #9ec6ec;
   }
 
   .panel-handle::after {
     content: '';
     position: absolute;
-    left: 50%;
     top: 46%;
-    width: 7cqw;
-    height: 1cqw;
+    left: 50%;
+    width: 120px;
+    height: 14px;
     transform: translateX(-50%);
-    background: var(--g-door-seam);
+    background: #142c58;
   }
 
-  /* ---------- Closed state (with JS, until .is-open; no JS shows the garage open) ---------- */
-
-  :global(html.js) .world-garage:not(.is-open) .door {
-    transform: translateY(0);
-    transition: transform 1.8s cubic-bezier(0.45, 0.05, 0.3, 1) 0.3s;
+  :global([data-theme='light']) .panel-handle::after {
+    background: #a9bcd6;
   }
 
-  :global(html.js) .world-garage:not(.is-open) .car {
+  /* ---------- Three.js garage (lib/garage-three.ts): a canvas takes over from the drawing ---------- */
+
+  /* The script adds the canvas' wrapper, so it carries no scoped attribute */
+  .room-view :global(.scene3d) {
+    position: absolute;
+    inset: 0;
     opacity: 0;
-    transform: translate(-50%, 6%);
-    transition:
-      opacity 0.4s ease,
-      transform 0.4s ease;
+    transition: opacity 0.8s ease;
   }
 
-  :global(html.js) .world-garage:not(.is-open) .spill {
-    opacity: 0;
-    transition: opacity 1.2s ease 0.6s;
+  .room-view :global(.scene3d canvas) {
+    display: block;
+    width: 100%;
+    height: 100%;
   }
 
-  :global(html.js) .world-garage:not(.is-open) .shade {
+  .garage.is-3d .room-view :global(.scene3d) {
     opacity: 1;
   }
 
-  :global(html.js) .world-garage:not(.is-open) .lit,
-  :global(html.js) .world-garage:not(.is-open) .bulb-on {
+  /* Arriving: the canvas is ready under the CSS door, which fades into the same door in 3D */
+  .garage.is-3d-instant .room-view :global(.scene3d) {
+    transition: none;
+  }
+
+  :global(html.js) .door.is-fading {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+
+  .garage.is-3d .room-svg {
+    visibility: hidden;
+    transition: visibility 0s 0.8s;
+  }
+
+  .garage.is-3d .room-svg *,
+  .garage.is-3d .room {
+    animation-play-state: paused;
+  }
+
+  /* The UI waits outside while the camera drives in */
+  .garage.is-arriving :is(.bottom, .car, .toolbox, .tires) {
+    visibility: hidden;
     opacity: 0;
   }
 
-  /* ---------- Opening: bulbs come on one by one (0.9–2.1s), headlights flash twice (2.7–3.3s) ---------- */
-
-  .is-open .lit {
-    animation: lights-on 1.2s steps(1, end) 0.9s both;
+  /* Wide screens: the 3D car, chest and tires take over; the HTML buttons sit on them */
+  .garage.is-3d-full .tires {
+    visibility: hidden;
+    opacity: 0;
   }
 
-  .is-open .shade {
-    animation: shade-off 1.2s steps(1, end) 0.9s both;
+  .garage.is-3d-full .car {
+    top: var(--y, 360px);
+    left: var(--x, 50%);
+    width: var(--w, 600px);
+    margin-left: 0;
   }
 
-  .is-open .bulb-on {
-    animation: bulb-on 0.45s steps(1, end) var(--delay) both;
+  /* Only its button and sheet take clicks: the skill labels round the hologram sit under it */
+  .garage.is-3d .car {
+    pointer-events: none;
   }
 
-  .is-open .hl {
-    animation: headlight-flash 0.6s ease-in-out 2.7s both;
+  .garage.is-3d .car :is(.hood-toggle, .sheet) {
+    pointer-events: auto;
   }
 
-  @keyframes bulb-on {
-    0% { opacity: 0; }
-    20% { opacity: 0.8; }
-    35% { opacity: 0; }
-    60% { opacity: 1; }
-    75% { opacity: 0.4; }
-    100% { opacity: 1; }
+  /* The picture has left the page: the box keeps the drawing's shape */
+  .garage.is-3d .car {
+    aspect-ratio: 1222 / 847;
   }
 
-  @keyframes lights-on {
-    0% { opacity: 0; }
-    30% { opacity: 0.35; }
-    60% { opacity: 0.7; }
-    100% { opacity: 1; }
+  .garage.is-3d {
+    -webkit-user-select: none;
+    user-select: none;
   }
 
-  @keyframes shade-off {
-    0% { opacity: 1; }
-    30% { opacity: 0.65; }
-    60% { opacity: 0.3; }
-    100% { opacity: 0; }
+  .garage.is-3d :is(.sheet, .skills, .bottom) {
+    -webkit-user-select: text;
+    user-select: text;
   }
 
-  @keyframes headlight-flash {
-    0% { opacity: 0; }
-    20% { opacity: 1; }
-    45% { opacity: 0.05; }
-    68% { opacity: 1; }
-    100% { opacity: 0; }
+  /* Skill labels round the holographic engine (CSS2DRenderer puts them over the canvas) */
+  .room-view :global(.holo-labels) {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
   }
 
-  /* The global rule shortens durations but not delays: drop them so the garage is simply open */
-  @media (prefers-reduced-motion: reduce) {
-    .world-garage * {
-      transition-delay: 0s !important;
-    }
-  }
-
-  /* ---------- Under the garage ---------- */
-
-  .bay-bar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 8px 24px;
-    padding: 20px 0;
-    border-bottom: 1px solid var(--g-line);
-  }
-
-  .bay-name {
-    margin: 0;
-    font-family: var(--g-font-head);
-    font-weight: 600;
-    font-size: 24px;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    color: var(--g-text-2);
+  .room-view :global(.holo-label) {
+    padding: 7px 10px;
+    border: 1px solid rgb(92 200 255 / 0.55);
+    border-radius: 4px;
+    background: rgb(5 20 45 / 0.45);
+    box-shadow:
+      0 0 14px rgb(92 200 255 / 0.35),
+      inset 0 0 10px rgb(92 200 255 / 0.15);
+    color: #bfeaff;
+    font-family: var(--font-pixel);
+    font-size: 9px;
+    text-shadow: 0 0 8px rgb(92 200 255 / 0.9);
     white-space: nowrap;
+    cursor: pointer;
+    pointer-events: auto;
   }
 
-  .bay-name strong {
-    font-weight: 600;
-    color: var(--g-accent);
+  .room-view :global(.holo-label:hover),
+  .room-view :global(.holo-label.is-open) {
+    background: rgb(92 200 255 / 0.25);
+    color: #ffffff;
   }
 
-  .bay-text {
-    flex: 1 1 320px;
-    margin: 0;
-    font-size: 16px;
-    line-height: 1.55;
-    color: var(--g-muted);
+  .room-view :global(.holo-label:focus-visible) {
+    outline: 2px solid #bfe0ff;
+    outline-offset: 2px;
   }
 
-  .bay-body {
-    display: grid;
-    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
-    gap: 48px;
-    margin-top: 48px;
+  :global([data-theme='light']) .room-view :global(.holo-label) {
+    border-color: rgb(10 127 196 / 0.6);
+    background: rgb(255 255 255 / 0.7);
+    box-shadow: 0 0 12px rgb(10 127 196 / 0.25);
+    color: #0a4f8a;
+    text-shadow: none;
   }
 
-  .bio p {
-    margin: 0 0 20px;
-    font-size: 18px;
-    line-height: 1.65;
-    color: var(--g-text-2);
+  :global([data-theme='light']) .room-view :global(.holo-label:hover),
+  :global([data-theme='light']) .room-view :global(.holo-label.is-open) {
+    background: #0a7fc4;
+    color: #ffffff;
   }
 
-  .bio p:first-child {
-    color: var(--g-text);
+  .car picture {
+    display: block;
   }
 
-  .spec {
-    align-self: start;
-    border: 1px solid var(--g-line);
-    border-top: 3px solid var(--g-accent);
-    background: var(--g-surface);
+  .car picture,
+  .car-shadow,
+  .chest,
+  .casters,
+  .handle {
+    transition:
+      opacity 0.8s ease,
+      background-color 0.8s ease,
+      border-color 0.8s ease,
+      box-shadow 0.8s ease;
   }
 
-  .spec-title {
-    margin: 0;
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--g-line);
-    font-family: var(--g-font-label);
-    font-weight: 500;
-    font-size: 13px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--g-accent);
+  .garage.is-3d :is(.car picture, .car-shadow),
+  .garage.is-3d-full :is(.casters, .handle) {
+    opacity: 0;
   }
 
-  .spec dl {
-    margin: 0;
-    padding: 4px 20px 8px;
+  /* The spec sheet stays clear of the holographic engine: on the right edge */
+  .garage.is-3d-full .sheet {
+    left: var(--sheet-x, 56%);
+    margin-left: 0;
   }
 
-  .spec-row {
-    display: grid;
-    grid-template-columns: 9.5em minmax(0, 1fr);
-    gap: 12px;
-    padding: 10px 0;
-    border-bottom: 1px dashed var(--g-line);
+  /* Hood mode: the chest is mostly off screen; the labels round the engine stand in for its drawers */
+  .garage.is-3d-full.is-hood .chest {
+    visibility: hidden;
   }
 
-  .spec-row:last-child {
-    border-bottom: 0;
+  .garage.is-3d-full .toolbox {
+    inset: 0;
+    width: auto;
+    pointer-events: none;
   }
 
-  .spec dt {
-    font-family: var(--g-font-label);
-    font-size: 12px;
-    line-height: 1.9;
-    letter-spacing: 0.06em;
-    color: var(--g-muted);
+  .garage.is-3d-full .chest {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+    border-color: transparent;
+    background-color: transparent;
+    box-shadow: none;
   }
 
-  .spec dd {
-    margin: 0;
-    font-weight: 500;
-    font-size: 16px;
-    line-height: 1.5;
-    color: var(--g-text);
+  .garage.is-3d-full :is(.chest-label, .drawer) {
+    position: absolute;
+    top: var(--y);
+    left: var(--x);
+    width: var(--w);
+    height: var(--h);
   }
 
-  .next {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 52px;
-    margin-top: 40px;
-    padding: 0 24px;
-    background: var(--g-accent);
-    color: var(--g-on-accent);
-    font-family: var(--g-font-head);
-    font-style: italic;
-    font-weight: 800;
-    font-size: 22px;
-    text-transform: uppercase;
-    text-decoration: none;
+  .garage.is-3d-full .chest-label {
+    background: none;
   }
 
-  .next span {
-    transition: transform 0.2s ease;
+  .garage.is-3d-full .drawer {
+    min-height: 0;
+    padding: 0 10px;
+    background: transparent;
+    transform: none;
+    pointer-events: auto;
   }
 
-  .next:hover span {
-    transform: translateX(6px);
+  .garage.is-3d-full .drawer-label {
+    font-size: 11px;
   }
 
-  .back:focus-visible,
-  .door-toggle:focus-visible,
-  .credit:focus-visible,
-  .next:focus-visible {
-    outline: 2px solid var(--g-accent);
-    outline-offset: 3px;
+  .garage.is-3d-full .drawer:hover {
+    background: rgb(255 255 255 / 0.08);
   }
 
-  /* ---------- Phones ---------- */
+  .garage.is-3d-full .drawer[aria-expanded='true'] {
+    background: rgb(255 255 255 / 0.1);
+  }
 
-  @media (max-width: 720px) {
-    .world-garage {
-      padding: 24px 0 88px;
+  .garage.is-3d-full .skills {
+    top: var(--skills-y);
+    left: var(--skills-x);
+    pointer-events: auto;
+  }
+
+  .garage.is-chest-hover {
+    cursor: pointer;
+  }
+
+  /* ---------- Touch screens: no cursor, so the layers drift slowly on their own ---------- */
+
+  @media (hover: none) {
+    .room {
+      animation: drift 30s ease-in-out infinite alternate;
     }
 
-    .bay-body {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 32px;
-    }
-  }
-
-  @media (max-width: 639px) {
-    .back {
-      margin-bottom: 28px;
-    }
-
-    .bay-head {
-      margin-bottom: 28px;
-    }
-
-    /* The facade runs edge to edge so the garage stays as big as possible */
-    .house {
-      margin: 0 -24px;
-      padding: 6cqw 7cqw 0;
-    }
-
-    .apron {
-      margin: 0 -7cqw;
-    }
-
-    .porch-light {
-      top: 14cqw;
-      width: 3cqw;
-      height: 4.6cqw;
-    }
-
-    .porch-left {
-      left: 2cqw;
-    }
-
-    .porch-right {
-      right: 2cqw;
-    }
-
-    /* Lift the car and its rug clear of the credit line */
     .car {
-      bottom: 15%;
+      --drift: 10px;
+      animation: drift 22s ease-in-out infinite alternate;
+    }
+  }
+
+  /* Hidden tab: every loop holds still */
+  .garage.is-paused *,
+  .garage.is-paused {
+    animation-play-state: paused !important;
+  }
+
+  /* ---------- Phones and small tablets: one column over a room that fills the screen ---------- */
+
+  @media (max-width: 767px) {
+    .garage {
+      --glass-blur: blur(10px) saturate(170%);
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      min-height: 100svh;
+      padding-bottom: 32px;
     }
 
-    .rug {
-      bottom: 8%;
+    /* The room stays behind everything while the column scrolls */
+    .room {
+      inset: 0 -24px;
+      height: auto;
     }
 
-    /* Fewer props on a small garage */
-    .stool,
-    .extinguisher {
+    .room-view {
+      position: sticky;
+      top: 0;
+      height: 100svh;
+    }
+
+    .room-view::after {
+      content: none;
+    }
+
+    .tires {
       display: none;
     }
 
-    .bay-name {
-      font-size: 22px;
+    .car {
+      position: relative;
+      top: auto;
+      left: auto;
+      width: min(100% - 32px, 560px);
+      /* Under the header, with room for the hood button above the car */
+      margin: calc(var(--header-h) + 80px) auto 0;
     }
 
-    .bio p {
+    /* 3D: the hologram shows where the car is, so the sheet opens under it */
+    .garage.is-3d .sheet {
+      top: calc(100% + 12px);
+    }
+
+    .sheet {
+      width: min(460px, 100vw - 32px);
+      margin-left: calc(min(460px, 100vw - 32px) / -2);
+      padding: 18px 20px 8px;
+    }
+
+    .spec {
+      grid-template-columns: minmax(0, 104px) minmax(0, 1fr);
+    }
+
+    .toolbox {
+      position: relative;
+      top: auto;
+      left: auto;
+      width: auto;
+      margin: 0 16px;
+    }
+
+    .drawer[aria-expanded='true'] {
+      transform: translateX(12px);
+    }
+
+    .skills {
+      position: static;
+      width: auto;
+      margin-top: 16px;
+    }
+
+    .bottom {
+      position: relative;
+      inset: auto;
+      flex-direction: column;
+      gap: 16px;
+      margin: 0 16px;
+    }
+
+    .credit {
+      position: static;
+      align-self: flex-end;
+    }
+
+    .bio,
+    .next-card {
+      flex: none;
+      padding: 22px;
+      border-radius: 24px;
+    }
+
+    .bio-lead {
       font-size: 17px;
     }
+  }
 
-    .spec dl {
-      padding: 4px 16px 8px;
+  /* ---------- Reduced motion: no door, sway, dust, flicker or drift ---------- */
+
+  @media (prefers-reduced-motion: reduce) {
+    .garage *,
+    .garage {
+      animation: none !important;
+      transition: none !important;
     }
 
-    .spec-title {
-      padding: 12px 16px;
+    :global(html.js) .door {
+      display: none;
     }
 
-    .spec-row {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 2px;
+    .dust {
+      display: none;
+    }
+  }
+
+  /* ---------- Keyframes (transform and opacity only) ---------- */
+
+  @keyframes blink {
+    50% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes sway {
+    0%,
+    100% {
+      transform: rotate(-1.2deg);
+    }
+    50% {
+      transform: rotate(1.2deg);
+    }
+  }
+
+  @keyframes flick {
+    0%,
+    92%,
+    100% {
+      opacity: 1;
+    }
+    93% {
+      opacity: 0.55;
+    }
+    95% {
+      opacity: 1;
+    }
+    96% {
+      opacity: 0.7;
+    }
+  }
+
+  /* Off, a couple of stutters, then on */
+  @keyframes power-on {
+    0% {
+      opacity: 0;
+    }
+    20% {
+      opacity: 1;
+    }
+    30% {
+      opacity: 0.2;
+    }
+    45% {
+      opacity: 1;
+    }
+    55% {
+      opacity: 0.4;
+    }
+    70%,
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes dust {
+    0% {
+      transform: translate(0, 0);
+      opacity: 0;
+    }
+    20% {
+      opacity: 0.9;
+    }
+    80% {
+      opacity: 0.6;
+    }
+    100% {
+      transform: translate(18px, -60px);
+      opacity: 0;
+    }
+  }
+
+  @keyframes twinkle {
+    0%,
+    100% {
+      opacity: 0.2;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes led {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.3;
+    }
+  }
+
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.97);
+    }
+  }
+
+  @keyframes drift {
+    from {
+      transform: translate(calc(var(--drift, 6px) * -1), 0);
+    }
+    to {
+      transform: translate(var(--drift, 6px), calc(var(--drift, 6px) * -0.5));
     }
   }
 </style>

@@ -1,6 +1,5 @@
 ---
-import { localeBase, type Translations } from '../i18n';
-import { garageCar } from '../lib/garage';
+import { cvHref, localeBase, type Translations } from '../i18n';
 
 interface Props {
   t: Translations;
@@ -14,11 +13,10 @@ const base = localeBase(locale);
 const onAbout = page === 'about';
 const sectionHref = (hash: string) => (onAbout ? `${base}${hash}` : hash);
 
-// About is its own page: from the homepage the link warps there through the portal
+// On the homepage About scrolls to its quick section (START and "Enter the garage" warp to the full page)
 const links = [
   { href: sectionHref('#projects'), label: t.header.nav.work },
-  { href: `${base}about`, label: t.header.nav.about, warp: !onAbout, current: onAbout },
-  { href: sectionHref('#quests'), label: t.header.nav.quests },
+  { href: onAbout ? `${base}about` : '#about', label: t.header.nav.about, current: onAbout },
   { href: sectionHref('#contact'), label: t.header.nav.contact },
 ];
 
@@ -27,6 +25,11 @@ const languages = [
   { code: 'fr', label: 'FR', href: onAbout ? '/fr/about' : '/fr' },
 ];
 const otherLanguage = languages.find((lang) => lang.code !== locale)!;
+const cv = cvHref(locale);
+
+// Pixel icons (crisp 1-unit squares): a down arrow onto a tray, and a battery with one bar (Lite mode)
+const downloadIcon = 'M3 0h2v5h2v1H6v1H5v1H3V7H2V6H1V5h2zM0 9h8v1H0z';
+const liteIcon = 'M1 1h9v1H1zM1 6h9v1H1zM0 2h1v4H0zM10 2h1v1h1v2h-1v1h-1zM2 3h2v2H2z';
 ---
 
 <header class="site-header">
@@ -39,8 +42,6 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
           <li>
             <a
               href={link.href}
-              data-warp={link.warp ? '' : undefined}
-              data-warp-preload={link.warp ? garageCar.webp : undefined}
               aria-current={link.current ? 'page' : undefined}
             >
               {link.label}
@@ -51,6 +52,17 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
     </nav>
 
     <div class="tools">
+      {onAbout && (
+        <a class="back" href={base}>
+          <span aria-hidden="true">◀</span> {t.about.back}
+        </a>
+      )}
+
+      <a class="cv" href={cv} download aria-label={t.header.cvLabel}>
+        <svg aria-hidden="true" width="12" height="15" viewBox="0 0 8 10" shape-rendering="crispEdges"><path fill="currentColor" d={downloadIcon} /></svg>
+        {t.header.cv}
+      </a>
+
       <a class="lang" href={otherLanguage.href} hreflang={otherLanguage.code} aria-label={t.header.switchLanguage}>
         {languages.map((lang) => (
           <span class:list={{ current: lang.code === locale }} aria-hidden="true">
@@ -75,6 +87,11 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
         </svg>
       </button>
 
+      <!-- Lite mode: forces the low tier everywhere (no three.js), saved; the page reloads to apply it -->
+      <button type="button" class="lite-toggle" aria-pressed="false" aria-label={t.header.lite} title={t.header.liteHint}>
+        <svg aria-hidden="true" width="22" height="15" viewBox="0 0 12 8" shape-rendering="crispEdges"><path fill="currentColor" d={liteIcon} /></svg>
+      </button>
+
       <button type="button" class="menu-toggle" aria-expanded="false" aria-controls="arcade-menu">
         {t.header.menu}
       </button>
@@ -85,13 +102,19 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
   <dialog id="arcade-menu" class="arcade-menu" aria-label={t.header.navLabel}>
     <button type="button" class="menu-close"><span aria-hidden="true">✕</span> {t.header.close}</button>
     <ul class="menu-links">
+      {onAbout && (
+        <li>
+          <a href={base} autofocus>
+            <span class="menu-cursor" aria-hidden="true">▶</span>
+            <span aria-hidden="true">◀</span> {t.about.back}
+          </a>
+        </li>
+      )}
       {links.map((link, i) => (
         <li>
           <a
             href={link.href}
-            autofocus={i === 0}
-            data-warp={link.warp ? '' : undefined}
-            data-warp-preload={link.warp ? garageCar.webp : undefined}
+            autofocus={i === 0 && !onAbout}
             aria-current={link.current ? 'page' : undefined}
           >
             <span class="menu-cursor" aria-hidden="true">▶</span>
@@ -99,11 +122,37 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
           </a>
         </li>
       ))}
+      <li>
+        <a class="menu-cv" href={cv} download aria-label={t.header.cvLabel}>
+          <span class="menu-cursor" aria-hidden="true">▶</span>
+          <svg aria-hidden="true" width="16" height="20" viewBox="0 0 8 10" shape-rendering="crispEdges"><path fill="currentColor" d={downloadIcon} /></svg>
+          {t.header.cv}
+        </a>
+      </li>
+      <li>
+        <button type="button" class="menu-lite lite-toggle" aria-pressed="false">
+          <span class="menu-cursor" aria-hidden="true">▶</span>
+          <svg aria-hidden="true" width="24" height="16" viewBox="0 0 12 8" shape-rendering="crispEdges"><path fill="currentColor" d={liteIcon} /></svg>
+          {t.header.lite}
+        </button>
+      </li>
     </ul>
   </dialog>
 </header>
 
 <script>
+  import { isLiteMode, setLiteMode } from '../lib/quality';
+
+  // Lite mode: on or off, then reload so every part of the page picks its tier again
+  const lite = isLiteMode();
+  for (const toggle of document.querySelectorAll<HTMLButtonElement>('.lite-toggle')) {
+    toggle.setAttribute('aria-pressed', String(lite));
+    toggle.addEventListener('click', () => {
+      setLiteMode(!lite);
+      window.location.reload();
+    });
+  }
+
   const button = document.querySelector<HTMLButtonElement>('.theme-toggle');
   const root = document.documentElement;
 
@@ -283,10 +332,13 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
     background: var(--accent);
   }
 
-  /* Glass controls: the nav pill group, EN/FR, the theme and MENU buttons */
+  /* Glass controls: the nav pill group, the way back, EN/FR, the theme and MENU buttons */
   .links,
+  .back,
+  .cv,
   .lang,
   .theme-toggle,
+  .tools > .lite-toggle,
   .menu-toggle,
   .menu-close {
     border: 1px solid var(--glass-border);
@@ -334,6 +386,24 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
     gap: 8px;
   }
 
+  /* About page: the way back to the homepage */
+  .back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 999px;
+    font-size: 14px;
+    color: var(--text);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .back:hover {
+    background: var(--glass-hover);
+  }
+
   .lang {
     display: flex;
     gap: 2px;
@@ -362,6 +432,56 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
     background: var(--glass-active);
     box-shadow: inset 0 1px 0 var(--glass-highlight);
     color: var(--text);
+  }
+
+  /* The CV: a pixel arrow and the pixel font, like EN/FR */
+  .cv {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 14px;
+    border-radius: 999px;
+    font-family: var(--font-pixel);
+    font-size: 10px;
+    color: var(--text);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .cv svg {
+    color: var(--accent);
+  }
+
+  .cv:hover {
+    background: var(--glass-hover);
+  }
+
+  .tools > .lite-toggle {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 50%;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .tools > .lite-toggle:hover {
+    background: var(--glass-hover);
+    color: var(--text);
+  }
+
+  /* Needs JS (it saves a setting and reloads) */
+  :global(html:not(.js)) .lite-toggle {
+    display: none;
+  }
+
+  /* On: lit up like the current language */
+  .tools > .lite-toggle[aria-pressed='true'] {
+    background: var(--glass-active);
+    color: var(--accent);
   }
 
   .theme-toggle {
@@ -481,6 +601,31 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
     text-decoration: none;
   }
 
+  .menu-lite {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 56px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-family: var(--font-pixel);
+    /* No uppercase: the pixel font has no capital É (Mode léger) */
+    font-size: clamp(14px, 4.5vw, 18px);
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .menu-lite[aria-pressed='true'] {
+    color: var(--accent);
+  }
+
+  .menu-links :is(.menu-cv, .menu-lite) svg {
+    flex: none;
+  }
+
+  .menu-lite:hover,
+  .menu-lite:focus,
   .menu-links a:hover,
   .menu-links a:focus {
     color: var(--accent);
@@ -495,7 +640,9 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
   }
 
   .menu-links a:hover .menu-cursor,
-  .menu-links a:focus .menu-cursor {
+  .menu-links a:focus .menu-cursor,
+  .menu-lite:hover .menu-cursor,
+  .menu-lite:focus .menu-cursor {
     opacity: 1;
     animation: menu-blink 0.8s steps(1) infinite;
   }
@@ -511,6 +658,7 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
   }
 
   a:focus-visible,
+  .tools > .lite-toggle:focus-visible,
   .theme-toggle:focus-visible,
   .menu-toggle:focus-visible,
   .menu-close:focus-visible {
@@ -563,6 +711,13 @@ const otherLanguage = languages.find((lang) => lang.code !== locale)!;
 
     :global(.js) .menu-toggle {
       display: grid;
+    }
+
+    /* No room in the bar on phones: the way back, the CV and Lite mode are in the MENU overlay */
+    .back,
+    :global(.js) .cv,
+    .tools > .lite-toggle {
+      display: none;
     }
   }
 </style>

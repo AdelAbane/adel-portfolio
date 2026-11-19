@@ -97,6 +97,9 @@ const POINTS_POOL = 6;
 
 <section id="top" class="hero">
   <div class="sky" aria-hidden="true">
+    <!-- Low tier (Lite mode, reduced motion, weak devices): the galaxy as a pre-rendered image -->
+    <img class="sky-static sky-static-dark" src="/media/galaxy-static.webp" alt="" width="1600" height="846" loading="lazy" decoding="async" />
+    <img class="sky-static sky-static-light" src="/media/galaxy-static-light.webp" alt="" width="1600" height="846" loading="lazy" decoding="async" />
     <canvas class="sky-canvas" width="320" height="180"></canvas>
     {skyLayers.map((layer) => <canvas class={`sky-layer sky-${layer.name}`} data-depth={layer.depth} width="0" height="0"></canvas>)}
   </div>
@@ -135,6 +138,9 @@ const POINTS_POOL = 6;
       <a class="btn btn-secondary" href="#contact">{t.hero.contact}</a>
     </div>
   </div>
+
+  <!-- Everything else is a normal scroll away -->
+  <a class="scroll-hint" href="#about"><span aria-hidden="true">▼</span> {t.hero.scroll}</a>
 
   <!-- Judo loop: every pose is stacked and swapped with opacity on one shared 12s timeline -->
   <div class="strip" aria-hidden="true">
@@ -274,12 +280,55 @@ const POINTS_POOL = 6;
     pointer-events: none;
   }
 
+  /* The galaxy's own dithered fade, finished smooth: the About section's sky starts this colour */
+  .sky::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 25%;
+    background: linear-gradient(rgb(5 11 26 / 0), #050b1a);
+  }
+
+  :global([data-theme='light']) .sky::after {
+    background: linear-gradient(rgb(207 227 248 / 0), #cfe3f8);
+  }
+
   /* Low-resolution canvases scaled up by whole pixels (the script sets their size) */
   .sky canvas {
     position: absolute;
     top: 0;
     left: 0;
     image-rendering: pixelated;
+  }
+
+  /* Low tier: the pre-rendered galaxy (bottom-aligned, so its fade meets the About sky) */
+  .sky-static {
+    display: none;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center bottom;
+    image-rendering: pixelated;
+  }
+
+  :global(html[data-tier='low']) .sky-static-dark {
+    display: block;
+  }
+
+  :global(html[data-tier='low'][data-theme='light']) .sky-static-dark {
+    display: none;
+  }
+
+  :global(html[data-tier='low'][data-theme='light']) .sky-static-light {
+    display: block;
+  }
+
+  :global(html[data-tier='low']) .sky canvas {
+    display: none;
   }
 
   /* Before the script sizes it (and without JS): no stretched blank canvas */
@@ -401,6 +450,35 @@ const POINTS_POOL = 6;
 
   .blink {
     animation: blink 1s steps(1) infinite;
+  }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    z-index: 2;
+    padding: 6px 8px;
+    transform: translateX(-50%);
+    font-family: var(--font-pixel);
+    font-size: 10px;
+    color: var(--text);
+    text-decoration: none;
+    white-space: nowrap;
+    animation: blink 1.2s steps(1) infinite;
+  }
+
+  .scroll-hint:hover,
+  .scroll-hint:focus-visible {
+    color: var(--accent);
+    animation: none;
+  }
+
+  /* Gone as soon as the page scrolls (see AboutQuick.astro) */
+  .scroll-hint.is-gone {
+    opacity: 0;
+    animation: none;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
   }
 
   .hud-coin.is-high {
@@ -1627,8 +1705,12 @@ const POINTS_POOL = 6;
 </style>
 
 <script>
-  // "▶ START" and the About nav links warp to /about through a pixel portal. Without JS they stay plain links.
+  import { downgrade, getSettings } from '../lib/quality';
+
+  // "▶ START" and "Enter the garage" warp to /about through a pixel portal (3D on medium and high
+  // tiers, a simple fade on low). Without JS they stay plain links.
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const quality = getSettings();
   const PARTICLES = 30;
   const SPARKS_PER_BURST = 12;
   const SPARK_COLORS = ['#FFFFFF', '#BFE0FF', 'var(--accent)'];
@@ -1800,8 +1882,26 @@ const POINTS_POOL = 6;
   }
 
   const preloadThree = () => {
-    if (!reducedMotion.matches && hasWebGL()) loadThree().catch(() => {});
+    if (quality.three && hasWebGL()) loadThree().catch(() => {});
   };
+
+  /** Low tier: no portal, just the page fading to the background colour */
+  function playFade(url: string) {
+    const overlay = document.createElement('div');
+    overlay.className = 'warp warp-fade';
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.append(overlay);
+    const color = getComputedStyle(overlay).backgroundColor;
+    const fade = overlay.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: 'ease-out', fill: 'forwards' });
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      go(url, color);
+    };
+    fade.finished.then(finish);
+    setTimeout(finish, 600);
+  }
 
   async function playThreePortal(url: string) {
     const overlay = document.createElement('div');
@@ -1817,7 +1917,8 @@ const POINTS_POOL = 6;
     try {
       const { playPortal } = await loadThree();
       overlay.querySelector('.warp-sparks')?.remove();
-      run = playPortal({ container: overlay, skipSparks: showSparks });
+      // Too slow for the portal: the next pages render one tier lower
+      run = playPortal({ container: overlay, skipSparks: showSparks, quality, onSlow: () => downgrade() });
     } catch {
       // No WebGL context or no chunk: hand over to the CSS portal (its overlay goes on top first)
       playCssPortal(url);
@@ -1845,16 +1946,16 @@ const POINTS_POOL = 6;
     link.addEventListener('focus', preloadThree);
 
     link.addEventListener('click', (event) => {
-      // Let new-tab and other modified clicks through; reduced motion just follows the link
+      // Let new-tab and other modified clicks through
       if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      if (reducedMotion.matches) return;
       event.preventDefault();
       if (document.querySelector('.warp')) return;
 
       // Fetch the next page's hero image now, so it's cached when the portal lands
       if (link.dataset.warpPreload) new Image().src = link.dataset.warpPreload;
 
-      if (hasWebGL()) playThreePortal(link.href);
+      if (!quality.three) playFade(link.href);
+      else if (hasWebGL()) playThreePortal(link.href);
       else playCssPortal(link.href);
     });
   });
@@ -1862,6 +1963,7 @@ const POINTS_POOL = 6;
 
 <script>
   import { createGalaxy } from '../lib/galaxy';
+  import { getSettings } from '../lib/quality';
 
   /*
    * Hero interactivity: the pixel galaxy, a pixel trail behind the cursor, star parallax, Tori
@@ -1908,12 +2010,15 @@ const POINTS_POOL = 6;
     const name = hero.querySelector<HTMLElement>('.name')!;
     const nameLetters = [...name.querySelectorAll<HTMLElement>('.letters > .letter')];
     const dot = name.querySelector<HTMLElement>('.dot')!;
-    const galaxy = createGalaxy({
-      host: hero,
-      sky: hero.querySelector<HTMLCanvasElement>('.sky-canvas')!,
-      starLayers: [...hero.querySelectorAll<HTMLCanvasElement>('.sky-layer')],
-      focus: [name.querySelector('h1')!, hero.querySelector<HTMLElement>('.hud')!],
-    });
+    // Low tier: the CSS shows the pre-rendered galaxy instead, and nothing draws
+    const galaxy = getSettings().galaxyAnimated
+      ? createGalaxy({
+          host: hero,
+          sky: hero.querySelector<HTMLCanvasElement>('.sky-canvas')!,
+          starLayers: [...hero.querySelectorAll<HTMLCanvasElement>('.sky-layer')],
+          focus: [name.querySelector('h1')!, hero.querySelector<HTMLElement>('.hud')!],
+        })
+      : { frame() {}, resize() {}, setTheme() {}, setStill() {} };
 
     // The cursor, in viewport coordinates; "overUi" while it's on a button or link
     const pointer = { x: 0, y: 0, inside: false, overUi: false, moved: false };

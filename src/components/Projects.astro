@@ -1,13 +1,880 @@
 ---
 import type { Translations } from '../i18n';
+import { codeColumns, featuredProjects, workshop, type Locale, type WorkshopStatus } from '../data/projects';
+import ProjectArt from './ProjectArt.astro';
 
 interface Props {
   t: Translations;
 }
 
 const { t } = Astro.props;
+const copy = t.projects;
+const locale: Locale = Astro.currentLocale === 'fr' ? 'fr' : 'en';
+
+const projects = featuredProjects;
+
+// Workshop progress bars: how many of 5 pixels are lit for each status
+const progress: Record<WorkshopStatus, number> = { idea: 1, prototype: 3, progress: 4 };
 ---
 
-<section id="projects">
-  <h2>{t.projects.title}</h2>
+<!-- Projects: glass cards over three columns of code drifting upward (see src/data/projects.ts) -->
+<section id="projects" class="projects" aria-labelledby="projects-title">
+  <div class="backdrop" aria-hidden="true">
+    <div class="code">
+      {codeColumns.map((lines, i) => (
+        <div class={`column column-${i + 1}`}>
+          <div class="scroll">
+            {[...lines, ...lines].map((line) => <div>{line || ' '}</div>)}
+          </div>
+        </div>
+      ))}
+    </div>
+    <div class="code-fade"></div>
+    <span class="blob"></span>
+    <!-- About → Projects: a cursor blinks in, then the code flows (scroll-story.ts) -->
+    <span class="cursor">▌</span>
+  </div>
+
+  <div class="inner">
+    <header class="head">
+      <div class="head-title">
+        <span class="glass chip-path">{copy.chip}</span>
+        <h2 id="projects-title" class="title">{copy.title}</h2>
+      </div>
+      <p class="subtitle">{copy.subtitle}</p>
+    </header>
+
+    <div class="cards">
+      {projects.map((project) => (
+        <article class="glass card reveal">
+          <div class="media" style={`background: ${project.gradient}`}>
+            <ProjectArt art={project.art} />
+          </div>
+          <div class="body">
+            <div class="meta">
+              <span class="kind">{project.kind[locale]}</span>
+              <span class={`status status-${project.status}`}>{copy.status[project.status]}</span>
+            </div>
+            <h3 class="card-title">
+              <!-- Covers the whole card; without JS it opens the panel through :target -->
+              <a class="card-link" href={`#project-${project.slug}`} aria-haspopup="dialog" data-project={project.slug}>
+                {project.title[locale]}
+              </a>
+            </h3>
+            <p class="description">{project.description[locale]}</p>
+            <ul class="tags" aria-label={copy.stack}>
+              {project.tags.map((tag) => <li>{tag}</li>)}
+            </ul>
+          </div>
+        </article>
+      ))}
+    </div>
+
+    <!-- Smaller things on the bench (src/data/projects.ts) -->
+    <div class="workshop">
+      <h3 class="workshop-title">{copy.workshop}</h3>
+      <ul class="workshop-list">
+        {workshop.map((item) => (
+          <li class="glass workshop-row reveal">
+            <span class="workshop-name">{item.name[locale]}</span>
+            <span class="workshop-line">{item.line[locale]}</span>
+            <span class={`workshop-status ws-${item.status}`}>
+              <span class="bar" aria-hidden="true">
+                {Array.from({ length: 5 }, (_, i) => (
+                  <span class:list={{ on: i < progress[item.status] }} />
+                ))}
+              </span>
+              {copy.workshopStatus[item.status]}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+
+  <!-- Detail panels: modal dialogs with JS (focus stays inside, Escape closes) -->
+  {projects.map((project) => (
+    <dialog id={`project-${project.slug}`} class="glass panel" aria-labelledby={`project-${project.slug}-title`}>
+      <div class="panel-head">
+        <div class="meta">
+          <span class="kind">{project.kind[locale]}</span>
+          <span class={`status status-${project.status}`}>{copy.status[project.status]}</span>
+        </div>
+        <a class="panel-close" href="#projects">
+          <span aria-hidden="true">✕</span> {copy.close}
+        </a>
+      </div>
+      <h3 id={`project-${project.slug}-title`} class="panel-title">
+        {project.title[locale]}
+      </h3>
+      <div class="panel-grid">
+        <section>
+          <h4>{copy.what}</h4>
+          <p>{project.details.what[locale]}</p>
+        </section>
+        <section>
+          <h4>{copy.built}</h4>
+          <p>{project.details.built[locale]}</p>
+        </section>
+        <section>
+          <h4>{copy.learned}</h4>
+          <p>{project.details.learned[locale]}</p>
+        </section>
+        <section>
+          <h4>{copy.stack}</h4>
+          <ul class="tags">
+            {project.stack.map((tag) => <li>{tag}</li>)}
+          </ul>
+        </section>
+        <section>
+          <h4>{copy.links}</h4>
+          {project.links.github || project.links.demo ? (
+            <p class="links">
+              {project.links.github && <a href={project.links.github}>{copy.github}</a>}
+              {project.links.demo && <a href={project.links.demo}>{copy.demo}</a>}
+            </p>
+          ) : (
+            <p class="todo">{copy.noLinks}</p>
+          )}
+        </section>
+      </div>
+    </dialog>
+  ))}
 </section>
+
+<script>
+  const section = document.querySelector<HTMLElement>('.projects');
+  if (section) {
+    // The code columns only drift while the section is on screen
+    new IntersectionObserver(([entry]) => section.classList.toggle('is-idle', !entry.isIntersecting)).observe(section);
+
+    // Cards open their panel as a modal dialog; focus comes back to the card when it closes
+    for (const link of section.querySelectorAll<HTMLAnchorElement>('.card-link')) {
+      const dialog = document.getElementById(`project-${link.dataset.project}`) as HTMLDialogElement | null;
+      if (!dialog) continue;
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        dialog.showModal();
+      });
+      dialog.querySelector('.panel-close')?.addEventListener('click', (event) => {
+        event.preventDefault();
+        dialog.close();
+      });
+      // A click on the backdrop (outside the panel) closes it too
+      dialog.addEventListener('click', (event) => {
+        const box = dialog.getBoundingClientRect();
+        const outside = event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom;
+        if (outside && event.target === dialog) dialog.close();
+      });
+      dialog.addEventListener('close', () => link.focus());
+    }
+  }
+</script>
+
+<style>
+  /* Same frosted glass as the header bar */
+  .projects {
+    --surface: #050b1a;
+    --glass: rgba(10, 22, 48, 0.45);
+    --glass-border: rgba(190, 224, 255, 0.18);
+    --glass-highlight: rgba(255, 255, 255, 0.2);
+    --glass-shadow: rgba(2, 8, 24, 0.55);
+    --glass-blur: blur(18px) saturate(160%);
+    --ink: #e6f3ff;
+    --ink-muted: #a9c4e8;
+    --ink-faint: #8fb3d9;
+    --ink-label: #8fd4ff;
+    --chip: rgba(190, 224, 255, 0.08);
+    --chip-border: rgba(190, 224, 255, 0.14);
+    --chip-ink: #cfe4ff;
+    --code-a: rgba(92, 200, 255, 0.22);
+    --code-b: rgba(129, 140, 248, 0.2);
+    --code-c: rgba(59, 130, 246, 0.24);
+    --blob: #1e40af;
+    position: relative;
+    padding: 120px 48px 140px;
+    background: var(--surface);
+    color: var(--ink);
+    isolation: isolate;
+  }
+
+  /* Daylight: pale dawn sky, white glass, dark blue text */
+  :global([data-theme='light']) .projects {
+    --surface: #dcebfb;
+    --glass: rgba(255, 255, 255, 0.6);
+    --glass-border: rgba(10, 42, 94, 0.12);
+    --glass-highlight: rgba(255, 255, 255, 0.85);
+    --glass-shadow: rgba(10, 42, 94, 0.16);
+    --ink: #0a1a33;
+    --ink-muted: #2e4466;
+    --ink-faint: #3f5578;
+    --ink-label: #0a56b8;
+    --chip: rgba(255, 255, 255, 0.7);
+    --chip-border: rgba(10, 42, 94, 0.14);
+    --chip-ink: #0a1a33;
+    --code-a: rgba(10, 86, 184, 0.16);
+    --code-b: rgba(67, 56, 202, 0.14);
+    --code-c: rgba(37, 99, 235, 0.16);
+    --blob: #93c5fd;
+  }
+
+  .projects :where(h2, h3, h4, p, ul) {
+    margin: 0;
+  }
+
+  .glass {
+    background: var(--glass);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      inset 0 1px 0 var(--glass-highlight),
+      0 24px 70px var(--glass-shadow);
+  }
+
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .projects {
+      --glass: rgba(10, 22, 48, 0.9);
+    }
+
+    :global([data-theme='light']) .projects {
+      --glass: rgba(255, 255, 255, 0.92);
+    }
+  }
+
+  /* ---------- Backdrop: code drifting up, faded at the top and bottom, a soft glow ---------- */
+
+  .backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /* Scroll story: the backdrop reaches up into the end of the About section, where the code flows in */
+  :global(html.story) .backdrop {
+    top: -60vh;
+  }
+
+  .code {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 48px;
+    padding: 0 48px;
+    font-family: var(--font-mono);
+    font-size: 15px;
+    line-height: 1.9;
+    white-space: pre;
+  }
+
+  .column {
+    overflow: hidden;
+  }
+
+  .column-1 {
+    color: var(--code-a);
+  }
+
+  .column-2 {
+    color: var(--code-b);
+  }
+
+  .column-3 {
+    color: var(--code-c);
+  }
+
+  /* The lines are doubled, so moving up by half loops seamlessly */
+  .scroll {
+    animation: code-up 60s linear infinite;
+  }
+
+  .column-2 .scroll {
+    animation-duration: 80s;
+  }
+
+  .column-3 .scroll {
+    animation-duration: 100s;
+  }
+
+  .code-fade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(var(--surface) 0%, transparent 18%, transparent 82%, var(--surface) 100%);
+    opacity: 0.85;
+  }
+
+  .blob {
+    position: absolute;
+    top: 30%;
+    left: 30%;
+    width: 560px;
+    height: 560px;
+    border-radius: 50%;
+    background: var(--blob);
+    opacity: 0.45;
+    filter: blur(70px);
+    animation: drift 22s ease-in-out infinite;
+  }
+
+  /* Off screen: nothing moves */
+  .projects.is-idle :is(.scroll, .blob) {
+    animation-play-state: paused;
+  }
+
+  /* Only shown during the About → Projects hand-off */
+  /* Centred on screen; it's only visible (opacity) during the hand-off */
+  .cursor {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    display: none;
+    transform: translate(-50%, -50%);
+    font-family: var(--font-mono);
+    font-size: 44px;
+    color: #5cc8ff;
+    text-shadow: 0 0 18px rgba(92, 200, 255, 0.8);
+    opacity: 0;
+    animation: cursor-blink 1s steps(1) infinite;
+  }
+
+  :global(html.story) .cursor {
+    display: block;
+  }
+
+  :global([data-theme='light']) .cursor {
+    color: #0a56b8;
+    text-shadow: none;
+  }
+
+  /* ---------- Content ---------- */
+
+  .inner {
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+  }
+
+  .head-title {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .chip-path {
+    align-self: flex-start;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--ink-label);
+  }
+
+  .title {
+    font-family: 'Inter Tight', var(--font-body);
+    font-weight: 800;
+    font-size: clamp(44px, 6vw, 80px);
+    line-height: 1;
+    letter-spacing: -0.045em;
+  }
+
+  .subtitle {
+    max-width: 380px;
+    font-size: 18px;
+    line-height: 1.6;
+    color: var(--ink-muted);
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 500px), 1fr));
+    gap: 24px;
+  }
+
+  .card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px;
+    border-radius: 28px;
+    /* translate, not transform: the scroll reveal animates transform */
+    transition:
+      translate 0.25s ease,
+      border-color 0.25s ease;
+  }
+
+  .card:hover,
+  .card:focus-within {
+    border-color: rgba(92, 200, 255, 0.45);
+    translate: 0 -6px;
+  }
+
+  .media {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 220px;
+    padding: 18px 24px;
+    overflow: hidden;
+    border-radius: 18px;
+  }
+
+  /* This website leads: full width, the illustration beside the text */
+  .card:first-child {
+    grid-column: 1 / -1;
+  }
+
+  @media (min-width: 1000px) {
+    .card:first-child {
+      flex-direction: row;
+      align-items: stretch;
+    }
+
+    .card:first-child .media {
+      flex: 0 0 48%;
+      height: auto;
+      min-height: 260px;
+    }
+
+    .card:first-child .body {
+      justify-content: center;
+      padding: 24px 28px;
+    }
+  }
+
+  .body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px 18px 16px;
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .kind {
+    font-size: 14px;
+    color: var(--ink-faint);
+  }
+
+  .status {
+    padding: 6px 12px;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    background: rgba(5, 11, 26, 0.35);
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .status-live {
+    color: #7dd3fc;
+  }
+
+  .status-progress {
+    color: #a5b4fc;
+  }
+
+  .status-ongoing {
+    color: #93c5fd;
+  }
+
+  :global([data-theme='light']) .status {
+    background: rgba(255, 255, 255, 0.7);
+  }
+
+  :global([data-theme='light']) .status-live {
+    color: #0369a1;
+  }
+
+  :global([data-theme='light']) .status-progress {
+    color: #4338ca;
+  }
+
+  :global([data-theme='light']) .status-ongoing {
+    color: #1d4ed8;
+  }
+
+  .card-title {
+    font-family: 'Inter Tight', var(--font-body);
+    font-weight: 700;
+    font-size: 28px;
+    letter-spacing: -0.03em;
+  }
+
+  .card-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* The whole card is the link */
+  .card-link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+  }
+
+  .card-link:focus-visible {
+    outline: none;
+  }
+
+  .card:has(.card-link:focus-visible) {
+    outline: 2px solid #5cc8ff;
+    outline-offset: 3px;
+  }
+
+  .description {
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--ink-muted);
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 4px 0 0;
+    list-style: none;
+  }
+
+  .tags li {
+    padding: 6px 12px;
+    border: 1px solid var(--chip-border);
+    border-radius: 999px;
+    background: var(--chip);
+    font-size: 13px;
+    color: var(--chip-ink);
+  }
+
+  /* ---------- In the workshop ---------- */
+
+  .workshop {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* Mono, not the pixel font: it has no capital À (À l'atelier) */
+  .workshop-title {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    font-weight: normal;
+    color: var(--ink-label);
+  }
+
+  .workshop-list {
+    display: grid;
+    gap: 10px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .workshop-row {
+    display: grid;
+    grid-template-columns: minmax(0, 220px) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 18px;
+    padding: 14px 20px;
+    border-radius: 18px;
+  }
+
+  .workshop-name {
+    font-family: 'Inter Tight', var(--font-body);
+    font-weight: 700;
+    font-size: 17px;
+  }
+
+  .workshop-line {
+    color: var(--ink-muted);
+  }
+
+  .workshop-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 12px;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    background: rgba(5, 11, 26, 0.35);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .ws-idea {
+    color: #fbbf24;
+  }
+
+  .ws-prototype {
+    color: #a5b4fc;
+  }
+
+  .ws-progress {
+    color: #7dd3fc;
+  }
+
+  :global([data-theme='light']) .workshop-status {
+    background: rgba(255, 255, 255, 0.7);
+  }
+
+  :global([data-theme='light']) .ws-idea {
+    color: #b45309;
+  }
+
+  :global([data-theme='light']) .ws-prototype {
+    color: #4338ca;
+  }
+
+  :global([data-theme='light']) .ws-progress {
+    color: #0369a1;
+  }
+
+  /* A tiny pixel progress bar: 5 squares, lit up to the status */
+  .bar {
+    display: inline-flex;
+    gap: 2px;
+  }
+
+  .bar span {
+    width: 5px;
+    height: 5px;
+    background: currentColor;
+    opacity: 0.25;
+  }
+
+  .bar span.on {
+    opacity: 1;
+  }
+
+  /* ---------- Detail panel ---------- */
+
+  .panel {
+    width: min(720px, 100vw - 32px);
+    max-height: min(86vh, 900px);
+    padding: 28px;
+    overflow: auto;
+    overscroll-behavior: contain;
+    border-radius: 28px;
+    color: var(--ink);
+    --glass: rgba(10, 22, 48, 0.82);
+  }
+
+  :global([data-theme='light']) .panel {
+    --glass: rgba(255, 255, 255, 0.9);
+  }
+
+  .panel::backdrop {
+    background: rgba(2, 6, 20, 0.6);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+  }
+
+  /* Without JS the card links to the panel: show it in place */
+  .panel:target:not([open]) {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: block;
+    margin: auto;
+    height: fit-content;
+  }
+
+  .panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .panel-head .meta {
+    justify-content: flex-start;
+  }
+
+  .panel-close {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 14px;
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    background: var(--chip);
+    color: var(--ink);
+    font-size: 14px;
+    text-decoration: none;
+  }
+
+  .panel-close:focus-visible,
+  .links a:focus-visible {
+    outline: 2px solid #5cc8ff;
+    outline-offset: 2px;
+  }
+
+  .panel-title {
+    margin: 18px 0 20px;
+    font-family: 'Inter Tight', var(--font-body);
+    font-weight: 800;
+    font-size: clamp(30px, 4vw, 40px);
+    letter-spacing: -0.035em;
+  }
+
+  .panel-grid {
+    display: grid;
+    gap: 18px;
+  }
+
+  .panel-grid h4 {
+    margin-bottom: 6px;
+    font-family: var(--font-pixel);
+    font-size: 9px;
+    font-weight: normal;
+    color: var(--ink-label);
+  }
+
+  .panel-grid p {
+    color: var(--ink-muted);
+    line-height: 1.6;
+  }
+
+  .links {
+    display: flex;
+    gap: 16px;
+  }
+
+  .links a {
+    color: var(--ink);
+  }
+
+  .todo {
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+
+  /* ---------- Phones ---------- */
+
+  @media (max-width: 767px) {
+    .projects {
+      --glass-blur: blur(10px) saturate(160%);
+      padding: 88px 16px 96px;
+    }
+
+    .code {
+      grid-template-columns: minmax(0, 1fr);
+      padding: 0 16px;
+      font-size: 13px;
+    }
+
+    .column-2,
+    .column-3 {
+      display: none;
+    }
+
+    /* One column behind a narrow title: keep it quieter */
+    .projects {
+      --code-a: rgba(92, 200, 255, 0.13);
+    }
+
+    :global([data-theme='light']) .projects {
+      --code-a: rgba(10, 86, 184, 0.1);
+    }
+
+    .blob {
+      left: 0;
+      width: 340px;
+      height: 340px;
+    }
+
+    .inner {
+      gap: 32px;
+    }
+
+    .media {
+      height: 180px;
+    }
+
+    .card-title {
+      font-size: 24px;
+    }
+
+    .workshop-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 6px 12px;
+      padding: 14px 16px;
+    }
+
+    .workshop-line {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      font-size: 15px;
+    }
+
+    .panel {
+      padding: 22px;
+    }
+  }
+
+  @media (min-width: 768px) and (max-width: 1100px) {
+    .column-3 {
+      display: none;
+    }
+
+    .code {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scroll,
+    .blob,
+    .cursor {
+      animation: none;
+    }
+
+    .card {
+      transition: none;
+    }
+  }
+
+  @keyframes code-up {
+    to {
+      transform: translateY(-50%);
+    }
+  }
+
+  @keyframes drift {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+    50% {
+      transform: translate(-140px, -40px) scale(0.9);
+    }
+  }
+
+  @keyframes cursor-blink {
+    50% {
+      color: transparent;
+      text-shadow: none;
+    }
+  }
+</style>

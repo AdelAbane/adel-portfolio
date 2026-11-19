@@ -1,0 +1,290 @@
+---
+import type { Art } from '../data/projects';
+
+interface Props {
+  art: Art;
+}
+
+/*
+ * The project cards' illustrations: pixel art on a 64 × 40 grid (inline SVG, crisp edges), in the
+ * site's palette. Each one moves a little while its card is hovered or focused, and only then.
+ */
+const { art } = Astro.props;
+
+// Rows of the little spiral galaxy in the browser window [x, y, colour]
+const galaxy = [
+  [17, 13, '#5CC8FF'], [18, 13, '#BFE0FF'], [19, 14, '#FFFFFF'], [20, 14, '#5CC8FF'], [16, 14, '#2B6CDB'],
+  [21, 15, '#2B6CDB'], [15, 15, '#2B6CDB'], [18, 15, '#5CC8FF'], [19, 16, '#2B6CDB'], [14, 16, '#1D4ED8'], [22, 13, '#1D4ED8'],
+];
+const stars = [[9, 11], [27, 10], [12, 19], [30, 17], [24, 21], [8, 24]];
+// Server rack units: LEDs per unit [x, colour, delay]
+const units = [0, 1, 2, 3, 4];
+const leds = [
+  [36, '#4ADE80', 0],
+  [38, '#5CC8FF', 0.35],
+  [40, '#FBBF24', 0.7],
+];
+---
+
+<svg class={`art art-${art}`} viewBox="0 0 64 40" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
+  {art === 'website' && (
+    <g>
+      <rect x="6" y="4" width="52" height="32" fill="#EAF2FF" />
+      <rect x="7" y="5" width="50" height="4" fill="#BFE0FF" />
+      <rect x="8" y="6" width="2" height="2" fill="#F87171" />
+      <rect x="11" y="6" width="2" height="2" fill="#FBBF24" />
+      <rect x="14" y="6" width="2" height="2" fill="#4ADE80" />
+      <rect x="20" y="6" width="30" height="2" fill="#EAF2FF" />
+      <rect x="7" y="9" width="50" height="26" fill="#0B1A3A" />
+      {stars.map(([x, y], i) => <rect class="twinkle" x={x} y={y} width="1" height="1" fill="#FFFFFF" style={`animation-delay: ${i * 0.2}s`} />)}
+      <g class="spin">{galaxy.map(([x, y, c]) => <rect x={x} y={y} width="1" height="1" fill={c as string} />)}</g>
+      <!-- The garage, its door rolling up on hover -->
+      <rect x="36" y="19" width="18" height="16" fill="#1A2B4F" />
+      <rect x="35" y="17" width="20" height="2" fill="#2B6CDB" />
+      <rect x="38" y="23" width="14" height="12" fill="#FFD9A0" />
+      <clipPath id="art-garage-opening"><rect x="38" y="21" width="14" height="14" /></clipPath>
+      <g clip-path="url(#art-garage-opening)">
+        <g class="door">
+          <rect x="38" y="21" width="14" height="14" fill="#22447F" />
+          <rect x="38" y="24" width="14" height="1" fill="#142C58" />
+          <rect x="38" y="28" width="14" height="1" fill="#142C58" />
+          <rect x="38" y="32" width="14" height="1" fill="#142C58" />
+        </g>
+      </g>
+    </g>
+  )}
+
+  {art === 'homelab' && (
+    <g>
+      <rect x="22" y="3" width="22" height="34" fill="#1A2B4F" />
+      <rect x="23" y="4" width="20" height="32" fill="#0B1A3A" />
+      {units.map((unit) => (
+        <g>
+          <rect x="24" y={6 + unit * 6} width="18" height="4" fill="#22355C" />
+          <rect x="25" y={7 + unit * 6} width="8" height="1" fill="#5A6B9A" />
+          <rect x="25" y={8 + unit * 6} width="6" height="1" fill="#5A6B9A" />
+          {leds.map(([x, c, d]) => (
+            <rect class="led" x={x} y={7 + unit * 6} width="1" height="2" fill={c as string} style={`animation-delay: ${(d as number) + unit * 0.15}s`} />
+          ))}
+        </g>
+      ))}
+      <rect x="24" y="37" width="3" height="2" fill="#22355C" />
+      <rect x="39" y="37" width="3" height="2" fill="#22355C" />
+      <!-- A Raspberry Pi on the side -->
+      <rect x="48" y="28" width="10" height="7" fill="#15803D" />
+      <rect x="49" y="29" width="3" height="3" fill="#0B1A3A" />
+      <rect x="54" y="29" width="3" height="1" fill="#BFE0FF" />
+      <rect x="54" y="31" width="3" height="1" fill="#BFE0FF" />
+      <rect class="led" x="56" y="33" width="1" height="1" fill="#F87171" style="animation-delay: 0.5s" />
+      <rect x="47" y="35" width="12" height="1" fill="#1A2B4F" />
+    </g>
+  )}
+
+  {art === 'roblox' && (
+    <g>
+      <g class="float" style="animation-delay: 0s">
+        <rect x="14" y="6" width="7" height="7" fill="#5CC8FF" />
+        <rect x="14" y="6" width="7" height="2" fill="#BFE0FF" />
+        <rect x="19" y="8" width="2" height="5" fill="#2B6CDB" />
+      </g>
+      <g class="float" style="animation-delay: 0.4s">
+        <rect x="29" y="3" width="6" height="6" fill="#A5B4FC" />
+        <rect x="29" y="3" width="6" height="2" fill="#E0E7FF" />
+        <rect x="33" y="5" width="2" height="4" fill="#6366F1" />
+      </g>
+      <g class="float" style="animation-delay: 0.8s">
+        <rect x="44" y="7" width="7" height="7" fill="#FBBF24" />
+        <rect x="44" y="7" width="7" height="2" fill="#FDE68A" />
+        <rect x="49" y="9" width="2" height="5" fill="#D97706" />
+      </g>
+      <!-- The controller -->
+      <path fill="#EAF2FF" d="M16 21h32v2h3v2h2v8h-2v2h-6v-2h-4v-2h-18v2h-4v2h-6v-2h-2v-8h2v-2h3z" />
+      <path fill="#BFE0FF" d="M16 21h32v2H16z" />
+      <path fill="#0B1A3A" d="M19 25h2v2h2v2h-2v2h-2v-2h-2v-2h2z" />
+      <rect class="press" x="42" y="25" width="2" height="2" fill="#F87171" />
+      <rect class="press" x="45" y="27" width="2" height="2" fill="#4ADE80" style="animation-delay: 0.3s" />
+      <rect x="28" y="26" width="3" height="1" fill="#5A6B9A" />
+      <rect x="33" y="26" width="3" height="1" fill="#5A6B9A" />
+    </g>
+  )}
+
+  {art === 'wireguard' && (
+    <g>
+      <!-- Two computers -->
+      <rect x="4" y="10" width="16" height="12" fill="#EAF2FF" />
+      <rect x="5" y="11" width="14" height="10" fill="#0B1A3A" />
+      <rect x="6" y="13" width="7" height="1" fill="#4ADE80" />
+      <rect x="6" y="15" width="10" height="1" fill="#5CC8FF" />
+      <rect x="10" y="22" width="4" height="3" fill="#BFE0FF" />
+      <rect x="6" y="25" width="12" height="2" fill="#EAF2FF" />
+      <rect x="44" y="10" width="16" height="12" fill="#EAF2FF" />
+      <rect x="45" y="11" width="14" height="10" fill="#0B1A3A" />
+      <rect x="46" y="13" width="9" height="1" fill="#5CC8FF" />
+      <rect x="46" y="15" width="6" height="1" fill="#4ADE80" />
+      <rect x="50" y="22" width="4" height="3" fill="#BFE0FF" />
+      <rect x="46" y="25" width="12" height="2" fill="#EAF2FF" />
+      <!-- The tunnel between them, with a lock -->
+      <rect class="glow" x="21" y="14" width="22" height="5" fill="#5CC8FF" opacity="0.25" />
+      <rect x="21" y="14" width="22" height="1" fill="#5CC8FF" />
+      <rect x="21" y="18" width="22" height="1" fill="#5CC8FF" />
+      <g class="packet"><rect x="22" y="16" width="2" height="1" fill="#FFFFFF" /></g>
+      <g class="packet" style="animation-delay: 0.6s"><rect x="22" y="16" width="2" height="1" fill="#FFFFFF" /></g>
+      <rect x="30" y="20" width="4" height="4" fill="#FBBF24" />
+      <rect x="31" y="18" width="2" height="2" fill="none" stroke="#FBBF24" stroke-width="1" />
+      <rect x="31" y="21" width="2" height="2" fill="#0B1A3A" />
+    </g>
+  )}
+
+  {art === 'mealfinder' && (
+    <g>
+      <!-- Steam -->
+      <rect class="steam" x="20" y="8" width="1" height="3" fill="#BFE0FF" />
+      <rect class="steam" x="25" y="6" width="1" height="4" fill="#BFE0FF" style="animation-delay: 0.4s" />
+      <rect class="steam" x="30" y="8" width="1" height="3" fill="#BFE0FF" style="animation-delay: 0.8s" />
+      <!-- The bowl -->
+      <rect x="12" y="15" width="28" height="3" fill="#FBBF24" />
+      <rect x="14" y="14" width="5" height="2" fill="#4ADE80" />
+      <rect x="22" y="13" width="6" height="2" fill="#F87171" />
+      <rect x="31" y="14" width="4" height="2" fill="#4ADE80" />
+      <path fill="#EAF2FF" d="M10 18h32v3h-1v3h-2v2h-3v2h-20v-2h-3v-2h-2v-3h-1z" />
+      <path fill="#BFE0FF" d="M11 21h30v3h-2v2h-3v2h-20v-2h-3v-2h-2z" />
+      <rect x="18" y="29" width="16" height="2" fill="#5A6B9A" />
+      <!-- The search magnifier -->
+      <g class="search">
+        <path fill="#5CC8FF" d="M44 8h8v2h2v2h1v8h-1v2h-2v2h-8v-2h-2v-2h-1v-8h1v-2h2z" />
+        <path fill="#0B1A3A" d="M45 10h6v2h2v6h-2v2h-6v-2h-2v-6h2z" />
+        <rect x="45" y="11" width="2" height="2" fill="#BFE0FF" />
+        <path fill="#EAF2FF" d="M53 23h2v2h2v2h2v2h2v3h-3v-2h-2v-2h-2v-2h-1z" />
+      </g>
+    </g>
+  )}
+</svg>
+
+<style>
+  .art {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 6px 0 rgb(5 11 26 / 0.35));
+  }
+
+  /* Every loop waits for the card's hover or focus */
+  .art * {
+    animation-play-state: paused;
+  }
+
+  :global(:is(.card:hover, .card:focus-within)) .art * {
+    animation-play-state: running;
+  }
+
+  .twinkle {
+    animation: twinkle 1.2s steps(2, jump-none) infinite;
+  }
+
+  .spin {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: spin 6s steps(12) infinite;
+  }
+
+  .door {
+    animation: door 2.4s steps(6) infinite alternate;
+  }
+
+  .led {
+    animation: blink 0.9s steps(1) infinite;
+  }
+
+  .float {
+    animation: float 1.6s steps(4) infinite alternate;
+  }
+
+  .press {
+    animation: blink 1.2s steps(1) infinite;
+  }
+
+  .glow {
+    animation: glow 1.4s steps(3) infinite alternate;
+  }
+
+  .packet {
+    animation: packet 1.2s steps(10) infinite;
+  }
+
+  .steam {
+    animation: steam 1.4s steps(4) infinite;
+  }
+
+  .search {
+    animation: search 2s steps(4) infinite alternate;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .art * {
+      animation: none !important;
+    }
+  }
+
+  @keyframes twinkle {
+    50% {
+      opacity: 0.2;
+    }
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes door {
+    to {
+      transform: translateY(-12px);
+    }
+  }
+
+  @keyframes blink {
+    50% {
+      opacity: 0.15;
+    }
+  }
+
+  @keyframes float {
+    to {
+      transform: translateY(-3px);
+    }
+  }
+
+  @keyframes glow {
+    to {
+      opacity: 0.6;
+    }
+  }
+
+  @keyframes packet {
+    to {
+      transform: translateX(18px);
+    }
+  }
+
+  @keyframes steam {
+    0% {
+      transform: translateY(2px);
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-4px);
+      opacity: 0;
+    }
+  }
+
+  @keyframes search {
+    to {
+      transform: translate(-3px, 2px);
+    }
+  }
+</style>
