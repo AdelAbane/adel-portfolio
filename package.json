@@ -12,6 +12,7 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/sitemap": "^3.7.6",
     "astro": "^7.4.11",
     "gsap": "^3.15.1",
     "simple-icons": "^16.38.0",

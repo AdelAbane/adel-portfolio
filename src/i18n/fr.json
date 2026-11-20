@@ -1,7 +1,7 @@
 {
   "meta": {
-    "title": "Adel Abane · Étudiant en informatique · Montréal",
-    "description": "Adel Abane, étudiant en informatique à Montréal. Des projets de jeux, d'IA et d'infrastructure, dans un portfolio arcade rétro avec un garage 3D."
+    "title": "Adel Abane — Étudiant en informatique et développeur | Montréal",
+    "description": "Étudiant en informatique à Montréal : jeux, homelab et expériences web 3D. Découvre mes projets, entre dans mon garage et télécharge mon CV."
   },
   "header": {
     "navLabel": "Principale",
@@ -209,7 +209,7 @@
     "honeypot": "Laisse ce champ vide"
   },
   "aboutPage": {
-    "title": "À propos · Adel Abane",
-    "description": "Adel Abane, étudiant en informatique au Cégep Champlain–Saint-Lambert : moteurs et logiciels, et le plaisir de construire les deux. Ouvre le coffre à outils et le capot dans un garage 3D."
+    "title": "À propos d'Adel Abane — Voitures, code et mécanique",
+    "description": "Entre dans mon garage : qui je suis, les outils avec lesquels je travaille et pourquoi j'aime comprendre comment tout fonctionne, du moteur au logiciel."
   }
 }

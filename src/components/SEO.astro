@@ -1,0 +1,55 @@
+---
+/*
+ * Everything search engines and share previews read: the title and description, the canonical
+ * URL, the EN ↔ FR alternates, Open Graph and Twitter cards. URLs are absolute, on the production
+ * domain (astro.config `site`).
+ */
+interface Props {
+  title: string;
+  description: string;
+  lang: 'en' | 'fr';
+  /** Share preview in public/ (1200 × 630), see scripts/render-og.mjs; defaults to the homepage's */
+  image?: string;
+  /** Out of search results (the 404): no canonical or alternates either */
+  noindex?: boolean;
+}
+
+const { title, description, lang, image, noindex = false } = Astro.props;
+
+const absolute = (path: string) => new URL(path, Astro.site).href;
+const canonical = absolute(Astro.url.pathname);
+const shareImage = absolute(image ?? (lang === 'fr' ? '/og/home-fr.jpg' : '/og/home-en.jpg'));
+
+// The same page in each language: /about/ ↔ /fr/about/, / ↔ /fr/
+const enPath = Astro.url.pathname.replace(/^\/fr(\/|$)/, '/');
+const frPath = enPath === '/' ? '/fr/' : `/fr${enPath}`;
+const alternates = [
+  { hreflang: 'en', href: absolute(enPath) },
+  { hreflang: 'fr', href: absolute(frPath) },
+  { hreflang: 'x-default', href: absolute(enPath) },
+];
+const locale = lang === 'fr' ? 'fr_CA' : 'en_CA';
+const otherLocale = lang === 'fr' ? 'en_CA' : 'fr_CA';
+---
+
+<title>{title}</title>
+<meta name="description" content={description} />
+{noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
+{!noindex && alternates.map(({ hreflang, href }) => <link rel="alternate" hreflang={hreflang} href={href} />)}
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Adel Abane" />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:image" content={shareImage} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content={title} />
+<meta property="og:locale" content={locale} />
+<meta property="og:locale:alternate" content={otherLocale} />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={shareImage} />

@@ -19,7 +19,7 @@ const dialogue = {
 };
 ---
 
-<Base title="404 · Game over · Adel Abane" description="This page doesn't exist." noindex>
+<Base title="Game Over — Page not found | Adel Abane" description="This page doesn't exist. Head back to the homepage to explore Adel Abane's projects and garage." noindex>
   <Header t={t} page="other" />
   <main class="over">
     <div class="sky" aria-hidden="true">
@@ -75,6 +75,7 @@ const dialogue = {
   const french = window.location.pathname.startsWith('/fr/') || navigator.language.toLowerCase().startsWith('fr');
   if (french) {
     document.documentElement.lang = 'fr';
+    document.title = 'Game Over — Page introuvable | Adel Abane';
     for (const el of document.querySelectorAll<HTMLElement>('[data-fr]')) el.textContent = el.dataset.fr!;
     for (const el of document.querySelectorAll<HTMLAnchorElement>('[data-fr-href]')) el.href = el.dataset.frHref!;
   }
