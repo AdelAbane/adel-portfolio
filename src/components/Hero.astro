@@ -1,23 +1,10 @@
 ---
 import type { Translations } from '../i18n';
-import PixelSprite from './PixelSprite.astro';
+import JudoSprite from './JudoSprite.astro';
 import { localeBase } from '../i18n';
 import { garageCar } from '../lib/garage';
-import {
-  toriPalette as tori,
-  ukePalette as uke,
-  toriWalkA,
-  toriWalkB,
-  toriRoll,
-  toriEntry,
-  toriLift,
-  toriThrow,
-  toriIppon,
-  ukeStand,
-  ukeBent,
-  ukeThrow,
-  ukeGround,
-} from '../lib/judo';
+import { fighterVars, fighters } from '../lib/fighters';
+import { judoFrames as f } from '../lib/judo';
 
 interface Props {
   t: Translations;
@@ -30,6 +17,14 @@ const aboutHref = `${localeBase(Astro.currentLocale)}about`;
 
 const PX = 4;
 const width = (map: string[]) => Math.max(...map.map((row) => row.length));
+const toriRoll = [1, 2, 3, 4, 5].map((i) => f[`toriRoll${i}`]);
+const toriEntry = [f.toriEntry1, f.toriEntry2];
+const toriLift = [f.toriLift1, f.toriLift2];
+const ukeThrow = [0, 1, 2, 3].map((i) => f[`ukeThrow${i}`]);
+// Before the script picks a random pair (and without JS): the first two fighters
+const style = (vars: Record<string, string>) => Object.entries(vars).map(([k, v]) => `${k}: ${v}`).join('; ');
+const toriDefault = style(fighterVars(fighters[0], 'white'));
+const ukeDefault = style(fighterVars(fighters[1], 'blue'));
 // Frames wider than 24 columns (the rotated roll frames) stay centered on the figure
 const centered = (map: string[]) => `left: ${((24 - width(map)) * PX) / 2}px`;
 
@@ -72,12 +67,13 @@ const throwSteps = [
   { cx: -8, cy: 104 },
   { cx: 20, cy: 140 },
   { cx: 48, cy: 112 },
-  { cx: 72, cy: 62 },
+  // The last step, already flat on the back, a hair above the mat: the next frame is the landing
+  { cx: 72, cy: 12 + (f.ukeThrow3.body.length * PX) / 2 },
 ];
-const throwFrames = ukeThrow.map((map, i) => ({
-  map,
-  left: throwSteps[i].cx - (width(map) * PX) / 2,
-  bottom: throwSteps[i].cy - (map.length * PX) / 2,
+const throwFrames = ukeThrow.map((frame, i) => ({
+  frame,
+  left: throwSteps[i].cx - (width(frame.body) * PX) / 2,
+  bottom: throwSteps[i].cy - (frame.body.length * PX) / 2,
 }));
 
 // ---------- Background: the pixel galaxy (drawn by src/lib/galaxy.ts) ----------
@@ -167,39 +163,41 @@ const POINTS_POOL = 6;
         <rect width="100%" height="24" fill="url(#ground-blocks)" />
       </svg>
       <div class="cast">
-        <div class="actor tori">
+        <div class="actor tori" data-hair={fighters[0].style} style={toriDefault}>
           <svg class="shadow" width="56" height="12" shape-rendering="crispEdges"><path d="M8 0h40v4H8zM0 4h56v4H0zM8 8h40v4H8z" /></svg>
           <div class="tori-hop">
             <div class="frame t-walk">
-              <PixelSprite map={toriWalkA} palette={tori} size={PX} />
-              <div class="frame walk-b"><PixelSprite map={toriWalkB} palette={tori} size={PX} /></div>
+              <JudoSprite frame={f.toriWalkA} size={PX} />
+              <div class="frame walk-b"><JudoSprite frame={f.toriWalkB} size={PX} /></div>
             </div>
-            <div class="frame t-stand"><PixelSprite map={toriWalkA} palette={tori} size={PX} /></div>
-            {toriRoll.map((map, i) => (
-              <div class={`frame t-roll-${i + 1}`} style={centered(map)}><PixelSprite map={map} palette={tori} size={PX} /></div>
+            <div class="frame t-stand"><JudoSprite frame={f.toriWalkA} size={PX} /></div>
+            {toriRoll.map((frame, i) => (
+              <div class={`frame t-roll-${i + 1}`} style={centered(frame.body)}><JudoSprite frame={frame} size={PX} /></div>
             ))}
             <div class="dust">
               {dust.map(([dx, dy, size, color]) => <span style={`--dx: ${dx}px; --dy: ${dy}px; --size: ${size}px; background: ${color}`}></span>)}
             </div>
-            {toriEntry.map((map, i) => <div class={`frame t-entry-${i + 1}`}><PixelSprite map={map} palette={tori} size={PX} /></div>)}
-            {toriLift.map((map, i) => <div class={`frame t-lift-${i + 1}`}><PixelSprite map={map} palette={tori} size={PX} /></div>)}
-            <div class="frame t-throw"><PixelSprite map={toriThrow} palette={tori} size={PX} /></div>
-            <div class="frame t-ippon"><PixelSprite map={toriIppon} palette={tori} size={PX} /></div>
+            {toriEntry.map((frame, i) => <div class={`frame t-entry-${i + 1}`}><JudoSprite frame={frame} size={PX} /></div>)}
+            {toriLift.map((frame, i) => <div class={`frame t-lift-${i + 1}`}><JudoSprite frame={frame} size={PX} /></div>)}
+            <div class="frame t-throw"><JudoSprite frame={f.toriThrow} size={PX} /></div>
+            <div class="frame t-ippon"><JudoSprite frame={f.toriIppon} size={PX} /></div>
           </div>
         </div>
-        <div class="actor uke">
+        <div class="actor uke" data-hair={fighters[1].style} style={ukeDefault}>
           <svg class="shadow" width="56" height="12" shape-rendering="crispEdges"><path d="M8 0h40v4H8zM0 4h56v4H0zM8 8h40v4H8z" /></svg>
-          <div class="frame u-stand"><PixelSprite map={ukeStand} palette={uke} size={PX} /></div>
-          <div class="frame u-bent"><PixelSprite map={ukeBent} palette={uke} size={PX} /></div>
+          <div class="frame u-stand"><JudoSprite frame={f.ukeStand} size={PX} /></div>
+          <div class="frame u-bent"><JudoSprite frame={f.ukeBent} size={PX} /></div>
           <!-- Lifted, then thrown in 4 rotation steps; each step stays behind as a fading after-image -->
-          {throwFrames.map(({ map, left, bottom }, i) => (
+          {throwFrames.map(({ frame, left, bottom }, i) => (
             <div class={`frame u-throw u-throw-${i}`} style={`left: ${left}px; bottom: ${bottom}px`}>
-              <PixelSprite map={map} palette={uke} size={PX} />
+              <JudoSprite frame={frame} size={PX} />
             </div>
           ))}
-          <div class="frame u-ground" style={`left: ${throwSteps[3].cx - (width(ukeGround) * PX) / 2}px`}>
-            <PixelSprite map={ukeGround} palette={uke} size={PX} />
+          <!-- Flat on the back, face up: the landing, with the impact effects -->
+          <div class="frame u-ground" style={`left: ${throwSteps[3].cx - (width(f.ukeGround.body) * PX) / 2}px`}>
+            <JudoSprite frame={f.ukeGround} size={PX} />
           </div>
+          <!-- Alternates each loop with 一本! (in DotGothic16) -->
           <p class="ippon"><span>IPPON!</span></p>
         </div>
         <!-- The landing, in front of both fighters: dust both ways, white lines out from the point of impact -->
@@ -780,6 +778,21 @@ const POINTS_POOL = 6;
     animation-iteration-count: infinite;
   }
 
+  /* Each fighter shows its own hairstyle's layer (data-hair, set by the roster script) */
+  .actor :global(.hair) {
+    display: none;
+  }
+
+  .actor[data-hair='short'] :global(.hair[data-style='short']),
+  .actor[data-hair='buzz'] :global(.hair[data-style='buzz']),
+  .actor[data-hair='ponytail'] :global(.hair[data-style='ponytail']),
+  .actor[data-hair='bun'] :global(.hair[data-style='bun']),
+  .actor[data-hair='braids'] :global(.hair[data-style='braids']),
+  .actor[data-hair='afro'] :global(.hair[data-style='afro']),
+  .actor[data-hair='tied'] :global(.hair[data-style='tied']) {
+    display: inline;
+  }
+
   /* Tori in front: lifted Uke lies across his shoulders, behind his head */
   .uke {
     z-index: 1;
@@ -974,6 +987,11 @@ const POINTS_POOL = 6;
     text-align: center;
     color: var(--accent);
     animation: ippon-blink 12s steps(1, end) infinite;
+  }
+
+  .ippon.is-ja {
+    font-family: 'DotGothic16', var(--font-pixel);
+    font-size: 26px;
   }
 
   .ippon span {
@@ -1959,6 +1977,43 @@ const POINTS_POOL = 6;
       else playCssPortal(link.href);
     });
   });
+</script>
+
+<script>
+  import { fighterVars, fighters, type Gi } from '../lib/fighters';
+
+  /*
+   * A new pair of fighters each time the 12s judo loop starts over (never the same one twice), Tori
+   * in white and Uke in blue or the other way round; the IPPON! alternates with 一本!.
+   */
+  const cast = document.querySelector<HTMLElement>('.hero .cast');
+  if (cast) {
+    const tori = cast.querySelector<HTMLElement>('.tori')!;
+    const uke = cast.querySelector<HTMLElement>('.uke')!;
+    const ippon = cast.querySelector<HTMLElement>('.ippon')!;
+    let loop = 0;
+    const dress = (el: HTMLElement, index: number, gi: Gi) => {
+      el.dataset.hair = fighters[index].style;
+      for (const [name, value] of Object.entries(fighterVars(fighters[index], gi))) el.style.setProperty(name, value);
+    };
+    const pick = () => {
+      const a = Math.floor(Math.random() * fighters.length);
+      const b = (a + 1 + Math.floor(Math.random() * (fighters.length - 1))) % fighters.length;
+      const swap = Math.random() < 0.5;
+      dress(tori, a, swap ? 'blue' : 'white');
+      dress(uke, b, swap ? 'white' : 'blue');
+      const japanese = loop % 2 === 1;
+      ippon.classList.toggle('is-ja', japanese);
+      ippon.lang = japanese ? 'ja' : '';
+      ippon.firstElementChild!.textContent = japanese ? '一本!' : 'IPPON!';
+      loop++;
+    };
+    pick();
+    // The loop restarts while everyone is faded out (cast-fade is at 0 opacity at the start)
+    cast.addEventListener('animationiteration', (event) => {
+      if (event.target === cast && event.animationName.includes('cast-fade')) pick();
+    });
+  }
 </script>
 
 <script>

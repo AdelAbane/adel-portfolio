@@ -1,7 +1,9 @@
 ---
-import { cvHref, localeBase, type Translations } from '../i18n';
+import TechIcon from './TechIcon.astro';
+import { cvFile, cvHref, localeBase, type Translations } from '../i18n';
 import { garageCar } from '../lib/garage';
 import ModelCredit from './ModelCredit.astro';
+import QuoteCard from './QuoteCard.astro';
 
 interface Props {
   t: Translations;
@@ -58,21 +60,23 @@ const stars = [
         <p>{about.bio[1]}</p>
       </div>
 
-      <div class="glass card story-card">
+      <QuoteCard t={t} class="story-card quote-slot" />
+
+      <div class="glass card skills-card story-card">
         <h3 class="card-title">{about.toolbox.name}</h3>
         <div class="groups">
           {about.toolbox.drawers.map((drawer, i) => (
             <div class="group">
               <h4 id={`quick-skills-${i}`} class="group-title">{drawer.title}</h4>
               <ul class="chips" aria-labelledby={`quick-skills-${i}`}>
-                {drawer.items.map((item) => <li>{item}</li>)}
+                {drawer.items.map((item) => <li><TechIcon name={item} />{item}</li>)}
               </ul>
             </div>
           ))}
         </div>
       </div>
 
-      <div class="glass card story-card">
+      <div class="glass card specs-card story-card">
         <h3 class="card-title">{about.hoodTitle}</h3>
         <dl class="specs">
           {about.specs.map((spec) => (
@@ -92,8 +96,7 @@ const stars = [
             <span aria-hidden="true">▶</span>
             {quick.enter}
           </a>
-          <!-- The name keeps the visible words (label in name), plus the file type -->
-          <a class="enter cv" href={cvHref(Astro.currentLocale)} download aria-label={`${quick.cv} (PDF)`}>
+          <a class="enter cv" href={cvHref(Astro.currentLocale)} download={cvFile(Astro.currentLocale)} aria-label={t.header.cvLabel}>
             <svg aria-hidden="true" width="12" height="15" viewBox="0 0 8 10" shape-rendering="crispEdges"
               ><path fill="currentColor" d="M3 0h2v5h2v1H6v1H5v1H3V7H2V6H1V5h2zM0 9h8v1H0z"></path></svg
             >
@@ -338,11 +341,43 @@ const stars = [
     display: block;
   }
 
+  /* Reading order: bio, the quote, skills, specs, the way in (two balanced columns on desktop) */
   .cards {
     display: grid;
     grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    grid-template-areas:
+      'intro quote'
+      'intro skills'
+      'specs skills'
+      'specs enter'
+      'credit credit';
     gap: 16px;
     width: min(100%, 1120px);
+  }
+
+  .intro {
+    grid-area: intro;
+  }
+
+  .cards :global(.quote-slot) {
+    grid-area: quote;
+    max-width: none;
+  }
+
+  .skills-card {
+    grid-area: skills;
+  }
+
+  .specs-card {
+    grid-area: specs;
+  }
+
+  .enter-card {
+    grid-area: enter;
+  }
+
+  .credit {
+    grid-area: credit;
   }
 
   .glass {
@@ -428,6 +463,9 @@ const stars = [
   }
 
   .chips li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     padding: 4px 10px;
     border: 1px solid var(--chip-border);
     border-radius: 999px;
@@ -545,6 +583,7 @@ const stars = [
 
     .cards {
       grid-template-columns: minmax(0, 1fr);
+      grid-template-areas: 'intro' 'quote' 'skills' 'specs' 'enter' 'credit';
       gap: 16px;
     }
 

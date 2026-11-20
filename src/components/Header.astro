@@ -1,22 +1,23 @@
 ---
-import { cvHref, localeBase, type Translations } from '../i18n';
+import { cvFile, cvHref, localeBase, type Translations } from '../i18n';
 
 interface Props {
   t: Translations;
-  /** Which page the header sits on: section links point back to the homepage from /about */
-  page?: 'home' | 'about';
+  /** Which page the header sits on: away from the homepage, section links point back to it */
+  page?: 'home' | 'about' | 'other';
 }
 
 const { t, page = 'home' } = Astro.props;
 const locale = Astro.currentLocale ?? 'en';
 const base = localeBase(locale);
 const onAbout = page === 'about';
-const sectionHref = (hash: string) => (onAbout ? `${base}${hash}` : hash);
+const onHome = page === 'home';
+const sectionHref = (hash: string) => (onHome ? hash : `${base}${hash}`);
 
 // On the homepage About scrolls to its quick section (START and "Enter the garage" warp to the full page)
 const links = [
   { href: sectionHref('#projects'), label: t.header.nav.work },
-  { href: onAbout ? `${base}about` : '#about', label: t.header.nav.about, current: onAbout },
+  { href: onAbout ? `${base}about` : sectionHref('#about'), label: t.header.nav.about, current: onAbout },
   { href: sectionHref('#contact'), label: t.header.nav.contact },
 ];
 
@@ -26,6 +27,7 @@ const languages = [
 ];
 const otherLanguage = languages.find((lang) => lang.code !== locale)!;
 const cv = cvHref(locale);
+const cvName = cvFile(locale);
 
 // Pixel icons (crisp 1-unit squares): a down arrow onto a tray, and a battery with one bar (Lite mode)
 const downloadIcon = 'M3 0h2v5h2v1H6v1H5v1H3V7H2V6H1V5h2zM0 9h8v1H0z';
@@ -34,7 +36,7 @@ const liteIcon = 'M1 1h9v1H1zM1 6h9v1H1zM0 2h1v4H0zM10 2h1v1h1v2h-1v1h-1zM2 3h2v
 
 <header class="site-header">
   <div class="inner">
-    <a class="logo" href={onAbout ? base : '#top'}><span class="dot" aria-hidden="true"></span>adel</a>
+    <a class="logo" href={onHome ? '#top' : base}><span class="dot" aria-hidden="true"></span>adel</a>
 
     <nav aria-label={t.header.navLabel}>
       <ul class="links">
@@ -58,7 +60,7 @@ const liteIcon = 'M1 1h9v1H1zM1 6h9v1H1zM0 2h1v4H0zM10 2h1v1h1v2h-1v1h-1zM2 3h2v
         </a>
       )}
 
-      <a class="cv" href={cv} download aria-label={t.header.cvLabel}>
+      <a class="cv" href={cv} download={cvName} aria-label={t.header.cvLabel}>
         <svg aria-hidden="true" width="12" height="15" viewBox="0 0 8 10" shape-rendering="crispEdges"><path fill="currentColor" d={downloadIcon} /></svg>
         {t.header.cv}
       </a>
@@ -123,7 +125,7 @@ const liteIcon = 'M1 1h9v1H1zM1 6h9v1H1zM0 2h1v4H0zM10 2h1v1h1v2h-1v1h-1zM2 3h2v
         </li>
       ))}
       <li>
-        <a class="menu-cv" href={cv} download aria-label={t.header.cvLabel}>
+        <a class="menu-cv" href={cv} download={cvName} aria-label={t.header.cvLabel}>
           <span class="menu-cursor" aria-hidden="true">▶</span>
           <svg aria-hidden="true" width="16" height="20" viewBox="0 0 8 10" shape-rendering="crispEdges"><path fill="currentColor" d={downloadIcon} /></svg>
           {t.header.cv}

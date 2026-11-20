@@ -5,9 +5,26 @@ interface Props {
   title: string;
   description?: string;
   lang?: 'en' | 'fr';
+  /** Share preview, from public/ (1200 × 630): see scripts/render-og.mjs */
+  image?: string;
+  /** Keep the page out of search results (the 404) */
+  noindex?: boolean;
 }
 
-const { title, description = '', lang = 'en' } = Astro.props;
+const { title, description = '', lang = 'en', image, noindex = false } = Astro.props;
+const shareImage = new URL(image ?? (lang === 'fr' ? '/og/home-fr.jpg' : '/og/home-en.jpg'), Astro.site);
+
+// Absolute URLs on the production domain (astro.config `site`)
+const canonical = new URL(Astro.url.pathname, Astro.site);
+// The same page in each language: /about ↔ /fr/about, / ↔ /fr/
+const enPath = Astro.url.pathname.replace(/^\/fr(\/|$)/, '/');
+const frPath = enPath === '/' ? '/fr/' : `/fr${enPath}`;
+const alternates = [
+  { hreflang: 'en', href: new URL(enPath, Astro.site) },
+  { hreflang: 'fr', href: new URL(frPath, Astro.site) },
+  { hreflang: 'x-default', href: new URL(enPath, Astro.site) },
+];
+const ogLocale = lang === 'fr' ? 'fr_CA' : 'en_CA';
 ---
 
 <!doctype html>
@@ -16,10 +33,33 @@ const { title, description = '', lang = 'en' } = Astro.props;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex" />}
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#0A1428" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
+
+    <link rel="canonical" href={canonical} />
+    {alternates.map(({ hreflang, href }) => <link rel="alternate" hreflang={hreflang} href={href} />)}
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Adel Abane" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:locale" content={ogLocale} />
+    <meta property="og:locale:alternate" content={lang === 'fr' ? 'en_CA' : 'fr_CA'} />
+    <meta property="og:image" content={shareImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={title} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={shareImage} />
 
     <!-- Apply saved theme before first paint to avoid a flash; flag JS so phones can swap the nav for the menu -->
     <script is:inline>
@@ -68,9 +108,13 @@ const { title, description = '', lang = 'en' } = Astro.props;
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Only the glyphs of the Lavoisier quote (the About quote card) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&text=Rien%20ne%20se%20perd%2C%20rien%20ne%20se%20cr%C3%A9e%2C%20tout%20se%20transforme.%E2%80%9C%E2%80%9D&display=swap" />
+    <!-- Only the glyphs of 一本! (the hero's IPPON alternates with it) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&text=%E4%B8%80%E6%9C%AC!&display=swap" />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500&family=Barlow+Condensed:ital,wght@0,600;1,800&family=Inter:wght@400;500&family=Inter+Tight:wght@600;700;800&family=JetBrains+Mono:wght@400;500&family=Press+Start+2P&family=Unbounded:wght@500;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500&family=Caveat:wght@600&family=Barlow+Condensed:ital,wght@0,600;1,800&family=Inter:wght@400;500&family=Inter+Tight:wght@600;700;800&family=JetBrains+Mono:wght@400;500&family=Press+Start+2P&family=Unbounded:wght@500;800&display=swap"
     />
   </head>
   <body>

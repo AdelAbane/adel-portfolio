@@ -1,0 +1,50 @@
+---
+import { techIcon } from '../lib/tech-icons';
+
+interface Props {
+  /** The chip's text: picks the logo (or the generic code icon) */
+  name: string;
+}
+
+const { name } = Astro.props;
+const { path, hex } = techIcon(name);
+// Near-black brand colours (Three.js, Tailscale…) would vanish on the dark theme: they keep the text colour there
+const dark = hex ? (() => {
+  const n = parseInt(hex.slice(1), 16);
+  return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255 < 0.22;
+})() : false;
+---
+
+{path ? (
+  <svg class="tech-icon" style={`--brand: ${hex}`} data-dark={dark ? '' : undefined} viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+    <path fill="currentColor" d={path} />
+  </svg>
+) : (
+  <svg class="tech-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+    <path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 4.5l-3 15" />
+  </svg>
+)}
+
+<style>
+  /* Monochrome in the chip's text colour; the brand colour when the chip is hovered */
+  .tech-icon {
+    flex: none;
+    color: currentColor;
+    opacity: 0.85;
+    transition:
+      color 0.2s ease,
+      opacity 0.2s ease;
+  }
+
+  :global(:hover) > .tech-icon {
+    opacity: 1;
+  }
+
+  :global(:hover) > .tech-icon[style] {
+    color: var(--brand);
+  }
+
+  :global(html:not([data-theme='light'])) :global(:hover) > .tech-icon[data-dark] {
+    color: currentColor;
+  }
+</style>

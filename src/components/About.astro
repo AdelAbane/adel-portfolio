@@ -1,7 +1,9 @@
 ---
+import TechIcon from './TechIcon.astro';
 import { localeBase, type Translations } from '../i18n';
 import { garageCar as car } from '../lib/garage';
 import ModelCredit from './ModelCredit.astro';
+import QuoteCard from './QuoteCard.astro';
 
 interface Props {
   t: Translations;
@@ -241,7 +243,7 @@ const tileRows = [625, 660, 712, 790, 900];
     {about.toolbox.drawers.map((drawer, i) => (
       <div id={`drawer-${i}`} class="glass skills" hidden>
         <h2 class="skills-title">{drawer.title}</h2>
-        <ul class="chips">{drawer.items.map((item) => <li>{item}</li>)}</ul>
+        <ul class="chips">{drawer.items.map((item) => <li><TechIcon name={item} />{item}</li>)}</ul>
       </div>
     ))}
   </div>
@@ -256,11 +258,15 @@ const tileRows = [625, 660, 712, 790, 900];
       <p class="bio-lead">{about.bio[0]}</p>
       <p class="bio-more">{about.bio[1]}</p>
     </div>
+
     <div class="glass next-card">
       <p class="hint">{about.hint}</p>
       <a class="next" href={`${base}#projects`}>{about.next} <span aria-hidden="true">→</span></a>
     </div>
   </div>
+
+  <!-- Lavoisier: upper right on wide screens; on phones it comes right after the bio -->
+  <QuoteCard t={t} class="garage-quote" />
 
   <!-- Arrival: a closed sectional door over the whole screen rolls up (with JS and motion only) -->
   <div class="door" aria-hidden="true">
@@ -1359,6 +1365,9 @@ const tileRows = [625, 660, 712, 790, 900];
   }
 
   .chips li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     padding: 6px 12px;
     border: 1px solid var(--chip-border);
     border-radius: 999px;
@@ -1390,6 +1399,23 @@ const tileRows = [625, 660, 712, 790, 900];
     flex-wrap: wrap;
     align-items: stretch;
     gap: 20px;
+  }
+
+  .garage :global(.garage-quote) {
+    position: absolute;
+    top: calc(var(--header-h) + 36px);
+    right: 40px;
+    z-index: 2;
+    width: min(440px, 34vw);
+    transition:
+      opacity 0.4s ease,
+      visibility 0.4s;
+  }
+
+  /* The spec sheet opens on the right: the quote steps aside */
+  .garage.is-hood :global(.garage-quote) {
+    visibility: hidden;
+    opacity: 0;
   }
 
   .bio {
@@ -1651,7 +1677,7 @@ const tileRows = [625, 660, 712, 790, 900];
   }
 
   /* The UI waits outside while the camera drives in */
-  .garage.is-arriving :is(.bottom, .car, .toolbox, .tires) {
+  .garage.is-arriving :is(.bottom, .car, .toolbox, .tires, :global(.garage-quote)) {
     visibility: hidden;
     opacity: 0;
   }
@@ -1924,12 +1950,34 @@ const tileRows = [625, 660, 712, 790, 900];
       margin-top: 16px;
     }
 
+    /* The bottom row's cards join the column, so the quote can sit between the bio and the next step */
     .bottom {
-      position: relative;
-      inset: auto;
-      flex-direction: column;
-      gap: 16px;
+      display: contents;
+    }
+
+    .bottom > *,
+    .garage :global(.garage-quote) {
       margin: 0 16px;
+    }
+
+    .bio {
+      order: 1;
+    }
+
+    .garage :global(.garage-quote) {
+      position: relative;
+      top: auto;
+      right: auto;
+      order: 2;
+      width: auto;
+    }
+
+    .next-card {
+      order: 3;
+    }
+
+    .bottom .credit {
+      order: 4;
     }
 
     .credit {

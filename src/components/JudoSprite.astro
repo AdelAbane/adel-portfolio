@@ -1,0 +1,43 @@
+---
+import { HAIR_STYLES, OUTLINE, type JudoFrame } from '../lib/judo';
+
+interface Props {
+  frame: JudoFrame;
+  /** Size of one pixel, in CSS px */
+  size?: number;
+}
+
+/*
+ * One judo frame as crisp SVG: the shared body, filled with the fighter's CSS variables
+ * (--j-W, --j-S…, set on the actor), and one hair layer per style; the actor's data-hair shows one.
+ */
+const { frame, size = 4 } = Astro.props;
+const width = Math.max(...frame.body.map((row) => row.length));
+const height = frame.body.length;
+
+/** One path per colour letter: each row's runs as 1-pixel-tall rectangles */
+function paths(map: string[]) {
+  const runs = new Map<string, string>();
+  map.forEach((row, y) => {
+    let x = 0;
+    while (x < row.length) {
+      const char = row[x];
+      let end = x + 1;
+      while (end < row.length && row[end] === char) end++;
+      if (char !== '.') runs.set(char, (runs.get(char) ?? '') + `M${x} ${y}h${end - x}v1h-${end - x}z`);
+      x = end;
+    }
+  });
+  return [...runs].map(([char, d]) => ({ d, fill: char === 'O' ? OUTLINE : `var(--j-${char})` }));
+}
+
+const body = paths(frame.body);
+const hair = HAIR_STYLES.map((style) => ({ style, paths: paths(frame.hair[style]) }));
+---
+
+<svg width={width * size} height={height * size} viewBox={`0 0 ${width} ${height}`} shape-rendering="crispEdges" style="display: block">
+  {body.map(({ d, fill }) => <path d={d} style={`fill: ${fill}`} />)}
+  {hair.map(({ style, paths: layer }) => (
+    <g class="hair" data-style={style}>{layer.map(({ d, fill }) => <path d={d} style={`fill: ${fill}`} />)}</g>
+  ))}
+</svg>

@@ -1,12 +1,12 @@
 {
   "meta": {
-    "title": "Adel — Portfolio",
-    "description": "Personal portfolio of Adel."
+    "title": "Adel Abane · Computer Science Student · Montréal",
+    "description": "Adel Abane, computer science student in Montréal. Games, AI and infrastructure projects, in a retro arcade portfolio with a 3D garage."
   },
   "header": {
     "navLabel": "Main",
     "nav": {
-      "work": "Work",
+      "work": "Projects",
       "about": "About",
       "quests": "Side quests",
       "contact": "Contact"
@@ -134,12 +134,17 @@
       ]
     },
     "bio": [
-      "I'm a computer science student at Champlain College Saint-Lambert. Whether it's an engine or an app, I want to know how it works: take it apart, figure it out, put it back together better.",
-      "That's how I learned to code, building games, AI chatbots for local businesses and a homelab. Same with go-karts: I buy them, fix them, flip them."
+      "I'm a computer science student at Champlain College Saint-Lambert, and I've always needed to know how things work. Engines, electronics, software: I take them apart, figure them out, and build them back up.",
+      "Most of what I know, I learned hands-on: a summer as an automotive mechanic intern, fixing up go-karts, running a homelab on a Raspberry Pi, and building games and this website. Off the keyboard, I coach judo and play soccer."
     ],
     "hint": "Open the toolbox and pop the hood to see what I work with.",
     "next": "Next stop: projects",
-    "back": "Back to the arcade"
+    "back": "Back to the arcade",
+    "quote": {
+      "text": "Rien ne se perd, rien ne se crée, tout se transforme.",
+      "translation": "Nothing is lost, nothing is created, everything is transformed. That's how I think about building things.",
+      "author": "Antoine Lavoisier"
+    }
   },
   "aboutQuick": {
     "eyebrow": "BAY 02 · QUICK STOP",
@@ -150,12 +155,13 @@
   },
   "projects": {
     "chip": "~/projects",
-    "title": "Things I've built.",
+    "title": "Main quests",
     "subtitle": "Some finished, some still in the garage.",
     "status": {
       "live": "Live",
       "progress": "In progress",
-      "ongoing": "Ongoing"
+      "ongoing": "Ongoing",
+      "done": "Done"
     },
     "open": "Open details",
     "what": "What it is",
@@ -170,6 +176,7 @@
     "workshop": "In the workshop",
     "workshopStatus": {
       "idea": "Idea",
+      "planning": "Planning",
       "prototype": "Prototype",
       "progress": "In progress"
     }
@@ -182,10 +189,27 @@
   },
   "contact": {
     "title": "Contact",
-    "soon": "Coming soon. In the meantime: [TODO] email."
+    "heading": "Let's talk.",
+    "line": "Internship, project, or just a question: my inbox is open.",
+    "dear": "Dear Adel,",
+    "name": "Name",
+    "email": "Email",
+    "message": "Message",
+    "send": "Send",
+    "sending": "Sending…",
+    "required": "This field is required.",
+    "invalidEmail": "Enter a valid email address, like name@example.com.",
+    "success": "Message sent. I'll get back to you soon.",
+    "error": "Something went wrong and the message wasn't sent. You can write to me directly at",
+    "links": "Other ways to reach me",
+    "mail": "Email me",
+    "github": "GitHub",
+    "linkedin": "LinkedIn",
+    "cv": "CV",
+    "honeypot": "Leave this field empty"
   },
   "aboutPage": {
-    "title": "About — Adel",
-    "description": "Adel, computer science student at Champlain College Saint-Lambert: engines and software, and building both."
+    "title": "About · Adel Abane",
+    "description": "Adel Abane, computer science student at Champlain College Saint-Lambert: engines and software, and building both. Open the toolbox and pop the hood in a 3D garage."
   }
 }

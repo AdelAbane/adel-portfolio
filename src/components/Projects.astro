@@ -1,7 +1,7 @@
 ---
+import TechIcon from './TechIcon.astro';
 import type { Translations } from '../i18n';
 import { codeColumns, featuredProjects, workshop, type Locale, type WorkshopStatus } from '../data/projects';
-import ProjectArt from './ProjectArt.astro';
 
 interface Props {
   t: Translations;
@@ -14,7 +14,16 @@ const locale: Locale = Astro.currentLocale === 'fr' ? 'fr' : 'en';
 const projects = featuredProjects;
 
 // Workshop progress bars: how many of 5 pixels are lit for each status
-const progress: Record<WorkshopStatus, number> = { idea: 1, prototype: 3, progress: 4 };
+const progress: Record<WorkshopStatus, number> = { idea: 1, planning: 2, prototype: 3, progress: 4 };
+
+// The renders (scripts/render-project-art.mjs): 800 and 1600 px wide, a dark and a light set
+const render = (slug: string, theme: '' | '-light') => ({
+  src: `/media/projects/${slug}${theme}.webp`,
+  srcset: `/media/projects/${slug}${theme}-800.webp 800w, /media/projects/${slug}${theme}.webp 1600w`,
+});
+// Card widths: the first card spans the row (its image ~half of it from 1000px), the others half the grid
+const sizes = (first: boolean) =>
+  first ? '(min-width: 1000px) 560px, (min-width: 768px) 90vw, 100vw' : '(min-width: 1100px) 560px, (min-width: 768px) 45vw, 100vw';
 ---
 
 <!-- Projects: glass cards over three columns of code drifting upward (see src/data/projects.ts) -->
@@ -45,10 +54,21 @@ const progress: Record<WorkshopStatus, number> = { idea: 1, prototype: 3, progre
     </header>
 
     <div class="cards">
-      {projects.map((project) => (
+      {projects.map((project, i) => (
         <article class="glass card reveal">
           <div class="media" style={`background: ${project.gradient}`}>
-            <ProjectArt art={project.art} />
+            {(['', '-light'] as const).map((theme) => (
+              <img
+                class={`render render${theme || '-dark'}`}
+                {...render(project.slug, theme)}
+                sizes={sizes(i === 0)}
+                alt=""
+                width="1600"
+                height="1000"
+                loading="lazy"
+                decoding="async"
+              />
+            ))}
           </div>
           <div class="body">
             <div class="meta">
@@ -63,7 +83,7 @@ const progress: Record<WorkshopStatus, number> = { idea: 1, prototype: 3, progre
             </h3>
             <p class="description">{project.description[locale]}</p>
             <ul class="tags" aria-label={copy.stack}>
-              {project.tags.map((tag) => <li>{tag}</li>)}
+              {project.tags.map((tag) => <li><TechIcon name={tag} />{tag}</li>)}
             </ul>
           </div>
         </article>
@@ -123,7 +143,7 @@ const progress: Record<WorkshopStatus, number> = { idea: 1, prototype: 3, progre
         <section>
           <h4>{copy.stack}</h4>
           <ul class="tags">
-            {project.stack.map((tag) => <li>{tag}</li>)}
+            {project.stack.map((tag) => <li><TechIcon name={tag} />{tag}</li>)}
           </ul>
         </section>
         <section>
@@ -147,6 +167,23 @@ const progress: Record<WorkshopStatus, number> = { idea: 1, prototype: 3, progre
   if (section) {
     // The code columns only drift while the section is on screen
     new IntersectionObserver(([entry]) => section.classList.toggle('is-idle', !entry.isIntersecting)).observe(section);
+
+    // A mouse tilts the card toward the cursor (6° at most); not on touch screens or with reduced motion
+    const tilt = window.matchMedia('(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)');
+    for (const card of section.querySelectorAll<HTMLElement>('.card')) {
+      card.addEventListener('pointermove', (event) => {
+        if (event.pointerType !== 'mouse' || !tilt.matches) return;
+        const box = card.getBoundingClientRect();
+        const x = (event.clientX - box.left) / box.width - 0.5;
+        const y = (event.clientY - box.top) / box.height - 0.5;
+        card.style.setProperty('--rx', `${(-y * 12).toFixed(2)}deg`);
+        card.style.setProperty('--ry', `${(x * 12).toFixed(2)}deg`);
+      });
+      card.addEventListener('pointerleave', () => {
+        card.style.removeProperty('--rx');
+        card.style.removeProperty('--ry');
+      });
+    }
 
     // Cards open their panel as a modal dialog; focus comes back to the card when it closes
     for (const link of section.querySelectorAll<HTMLAnchorElement>('.card-link')) {
@@ -410,8 +447,11 @@ const progress: Record<WorkshopStatus, number> = { idea: 1, prototype: 3, progre
     gap: 4px;
     padding: 14px;
     border-radius: 28px;
-    /* translate, not transform: the scroll reveal animates transform */
+    /* The cursor tilts the card (the script sets --rx/--ry); the lift uses translate, so neither
+       fights the scroll reveal, which animates transform until it clears it */
+    transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
     transition:
+      transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
       translate 0.25s ease,
       border-color 0.25s ease;
   }
@@ -424,13 +464,32 @@ const progress: Record<WorkshopStatus, number> = { idea: 1, prototype: 3, progre
 
   .media {
     position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     height: 220px;
-    padding: 18px 24px;
     overflow: hidden;
     border-radius: 18px;
+  }
+
+  /* The render for the current theme (the other one is never downloaded: lazy and not displayed) */
+  .render {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: scale 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .render-light,
+  :global([data-theme='light']) .render-dark {
+    display: none;
+  }
+
+  :global([data-theme='light']) .render-light {
+    display: block;
+  }
+
+  .card:hover .render {
+    scale: 1.04;
   }
 
   /* This website leads: full width, the illustration beside the text */
@@ -497,6 +556,10 @@ const progress: Record<WorkshopStatus, number> = { idea: 1, prototype: 3, progre
     color: #93c5fd;
   }
 
+  .status-done {
+    color: #86efac;
+  }
+
   :global([data-theme='light']) .status {
     background: rgba(255, 255, 255, 0.7);
   }
@@ -511,6 +574,10 @@ const progress: Record<WorkshopStatus, number> = { idea: 1, prototype: 3, progre
 
   :global([data-theme='light']) .status-ongoing {
     color: #1d4ed8;
+  }
+
+  :global([data-theme='light']) .status-done {
+    color: #15803d;
   }
 
   .card-title {
@@ -557,6 +624,9 @@ const progress: Record<WorkshopStatus, number> = { idea: 1, prototype: 3, progre
   }
 
   .tags li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     padding: 6px 12px;
     border: 1px solid var(--chip-border);
     border-radius: 999px;
@@ -625,6 +695,10 @@ const progress: Record<WorkshopStatus, number> = { idea: 1, prototype: 3, progre
     color: #fbbf24;
   }
 
+  .ws-planning {
+    color: #f9a8d4;
+  }
+
   .ws-prototype {
     color: #a5b4fc;
   }
@@ -639,6 +713,10 @@ const progress: Record<WorkshopStatus, number> = { idea: 1, prototype: 3, progre
 
   :global([data-theme='light']) .ws-idea {
     color: #b45309;
+  }
+
+  :global([data-theme='light']) .ws-planning {
+    color: #be185d;
   }
 
   :global([data-theme='light']) .ws-prototype {
@@ -852,6 +930,14 @@ const progress: Record<WorkshopStatus, number> = { idea: 1, prototype: 3, progre
 
     .card {
       transition: none;
+    }
+
+    .render {
+      transition: none;
+    }
+
+    .card:hover .render {
+      scale: 1;
     }
   }
 

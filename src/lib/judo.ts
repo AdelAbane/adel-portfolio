@@ -2,49 +2,29 @@
  * Judo pixel art for the hero strip, built at compile time.
  *
  * Every pose is drawn without its outline on a 22 × 26 grid (one character per pixel, "." is
- * empty), from shared parts: a head, the neck and gi top, arms and legs. `outline()` then adds a 1px dark
- * border, so each frame ends up 24 × 28 with the feet on its bottom row. Tori and Uke share the
- * same letters; only the palette (and Uke's buzz cut) differs, and Uke is mirrored to face left.
+ * empty), from shared parts: a head, the neck and gi top, arms and legs. `outline()` then adds a 1px
+ * dark border, so each frame ends up about 24 × 28 with the feet on its bottom row.
+ *
+ * One set of body frames serves every fighter. The colours are letters that the page maps to CSS
+ * variables (a palette per fighter: skin, gi, belt, hair), and the hair is a separate layer per
+ * style, worked out by building each frame with that hairstyle and keeping only what changed.
  *
  *   W / w / g  gi light, base, shadow    B  belt        S / s  skin, skin shadow
  *   H / h      hair, hair highlight      E  eyes        m      mouth
+ *   n          inside the lapels (skin, or a white T-shirt)
  *   O          outline (added)
  */
+
+import { HAIR_STYLES, type HairStyle } from './fighters';
+
+export { HAIR_STYLES, type HairStyle };
 
 export type PixelMap = string[];
 
 const W = 22;
 const H = 26;
 
-const OUTLINE = '#0A0F1E';
-
-export const toriPalette = {
-  W: '#F2F6FF',
-  w: '#D3DEF0',
-  g: '#9FB1CF',
-  B: '#111111',
-  S: '#D29A74',
-  s: '#A86F4E',
-  E: '#06101F',
-  m: '#B0745A',
-  H: '#3A2216',
-  h: '#6E4630',
-  O: OUTLINE,
-};
-
-export const ukePalette = {
-  W: '#4A8BF0',
-  w: '#2B6CDB',
-  g: '#1A4699',
-  B: '#5A3A22',
-  S: '#E0AC86',
-  s: '#B07A55',
-  E: '#06101F',
-  m: '#BE8466',
-  H: '#15161C',
-  h: '#454B60',
-  O: OUTLINE,
-};
+export const OUTLINE = '#0A0F1E';
 
 // ---------- Grid helpers ----------
 
@@ -139,14 +119,15 @@ export function outline(map: PixelMap): PixelMap {
 
 /*
  * Heads are 8 × 9: a 6 × 7 face block (flat top, straight sides, the jaw angling in over the last
- * 2 rows to a 2px chin) with an ear on each side at eye level, under 2 rows kept for hair spikes.
- * Brows are in the hair colour, the nose is a skin-shadow pixel and the mouth a darker line.
+ * 2 rows to a 2px chin) with an ear on each side at eye level. Brows are in the hair colour, the nose
+ * is a skin-shadow pixel and the mouth a darker line. The face is bald here; the hair is its own
+ * layer, on a 12 × 13 grid around it (2 pixels of room on every side, for buns, braids and afros).
  */
-const toriHead: PixelMap = [
-  'H.H.H...',
-  '.HHhHhH.',
-  '.HHHhHH.',
-  '.HSSSSH.',
+const face: PixelMap = [
+  '........',
+  '........',
+  '.SSSSSS.',
+  '.SSSSSS.',
   '.sHSSHS.',
   'sSESSESs',
   '.SSSsSS.',
@@ -154,13 +135,92 @@ const toriHead: PixelMap = [
   '...SS...',
 ];
 
-// Uke: a buzz cut, close to the head, with a sharp hairline
-const ukeHead: PixelMap = ['........', '........', '.HhHhHH.', ...toriHead.slice(3)];
+
+/** Hair around the face, front view (the face sits at 2, 2 on this 12 × 13 grid) */
+const frontHair: Record<HairStyle, PixelMap> = {
+  short: ['', '', '..H.H.H.....', '...HHhHhH...', '...HHHhHH...', '...H....H...'],
+  buzz: ['', '', '', '', '...HhHhHH...', '...H....H...'],
+  ponytail: ['', '', '', '....HHHH....', '...HHhHHH...', '.HHH....H...', 'HH..........', 'Hh..........', 'H...........'],
+  bun: ['.....HH.....', '....HhHH....', '....HHHH....', '...HHHHHH...', '...HhHHhH...', '...H....H...'],
+  braids: [
+    '',
+    '',
+    '',
+    '...HHHHHH...',
+    '...HHhhHH...',
+    '..HH....HH..',
+    '.Hh......hH.',
+    '.hH......Hh.',
+    '.Hh......hH.',
+    '.hH......Hh.',
+    '.Hh......hH.',
+    '.H........H.',
+  ],
+  afro: [
+    '...HHHHHH...',
+    '..HHhHHhHH..',
+    '.HHhHHHHhHH.',
+    '.HHHHhhHHHH.',
+    '.HHHHhHHHHH.',
+    '.HH......HH.',
+    '.HH......HH.',
+    '..H......H..',
+  ],
+  tied: ['', '', '', '...HHHHHH...', '..HHhHHHHH..', '..HH....H...', '..H.........', '.HH.........', '.Hh.........', '.HH.........', '..H.........'],
+};
+
+/*
+ * Lying on the back (the landing), seen from the side: the head in profile, crown to the left,
+ * face up. 8 × 6, on a 12 × 9 grid with room to the left and above for the hair.
+ */
+const profile: PixelMap = [
+  '....s...',
+  '.SHSSSmS',
+  'SSESSSSs',
+  'SSSSSSs.',
+  'sSSsSS..',
+  '.sSSS...',
+];
+
+const profileHair: Record<HairStyle, PixelMap> = {
+  short: ['', '', '', '....HH......', '...HHH......', '...HH.......', '...Hh.......', '...HH.......', '....HH......'],
+  buzz: ['', '', '', '', '....HH......', '....H.......', '....h.......', '....H.......', '.....H......'],
+  ponytail: ['', '', '', '....HH......', '...HHH......', '...HH.......', '...Hh.......', '.HHHH.......', 'HhHHHH......'],
+  bun: ['', '', '', '....HH......', '.HHHHH......', 'HHhHH.......', 'HHHHh.......', '..HHH.......', '....HH......'],
+  braids: ['', '', '', '....HH......', '...HHH......', '...HH.......', '...Hh.......', '.hHhHH......', 'HhHhHHH.....'],
+  afro: ['', '..HHH.......', '.HHhHH......', 'HHHHHH......', 'HHhHHH......', 'HHHHh.......', 'HhHHH.......', 'HHHHH.......', '.HHHHHH.....'],
+  tied: ['', '', '', '....HH......', '...HHH......', '...HH.......', '...HH.......', '...Hh.......', 'hHHHHHH.....'],
+};
+
+/** A head grid: the face at (dx, dy) on a w × h grid, with a hairstyle on top (or none: bald) */
+function headGrid(base: PixelMap, hair: PixelMap | null, w: number, h: number, dx: number, dy: number): PixelMap {
+  return compose([[base, dx, dy], ...(hair ? [[hair, 0, 0] as [PixelMap, number, number]] : [])], w, h);
+}
+
+/** Every cell any hairstyle covers, plus the face: the part of a head grid that can ever be drawn */
+function unionGrid(base: PixelMap, hairs: Record<HairStyle, PixelMap>, w: number, h: number, dx: number, dy: number): PixelMap {
+  return compose([[base, dx, dy], ...HAIR_STYLES.map((style) => [hairs[style].map((row) => row.replace(/[^.]/g, 'X')), 0, 0] as [PixelMap, number, number])], w, h);
+}
+
+interface HeadKind {
+  grid: (style: HairStyle | null) => PixelMap;
+  union: PixelMap;
+}
+
+const front: HeadKind = {
+  grid: (style) => headGrid(face, style ? frontHair[style] : null, 12, 13, 2, 2),
+  union: unionGrid(face, frontHair, 12, 13, 2, 2),
+};
+
+const side: HeadKind = {
+  grid: (style) => headGrid(profile, style ? profileHair[style] : null, 12, 9, 4, 3),
+  union: unionGrid(profile, profileHair, 12, 9, 4, 3),
+};
 
 // Gi top (12 × 9): broad shoulders, crossed lapels round the neck, a narrow waist, the belt with
 // its knot and two hanging ends, and the hips
 const torso: PixelMap = [
-  'WWWWgssgwwwg',
+  'WWWWgnngwwwg',
   'WWWWWgWgwwwg',
   'WWWWWWgwwwgg',
   '..WWWgWwwg..',
@@ -251,11 +311,11 @@ const legsKneel: PixelMap = [
  */
 interface Figure {
   map: PixelMap;
-  heads: { head: PixelMap; cx: number; cy: number; deg: number }[];
+  heads: { head: PixelMap; union: PixelMap; cx: number; cy: number; deg: number }[];
 }
 
 /** Gi top, neck and arms (21 × 19), hips on the last row; the head centers above the neck */
-function upper(head: PixelMap, arms: 'down' | 'forward' | 'up' | 'fist'): Figure {
+function upper(head: HeadGrid, arms: 'down' | 'forward' | 'up' | 'fist'): Figure {
   const parts: [PixelMap, number, number][] = [];
   if (arms === 'down' || arms === 'fist') parts.push([armDownBack, 0, 10]);
   if (arms === 'forward') parts.push([armForwardBack, 11, 12]);
@@ -265,7 +325,7 @@ function upper(head: PixelMap, arms: 'down' | 'forward' | 'up' | 'fist'): Figure
   if (arms === 'forward') parts.push([armForward, 12, 11]);
   if (arms === 'up') parts.push([armUp, 15, 3]);
   if (arms === 'fist') parts.push([armUp, 15, 1]);
-  return { map: compose(parts, 21, 19), heads: [{ head, cx: 9, cy: 4.5, deg: 0 }] };
+  return { map: compose(parts, 21, 19), heads: [{ ...head, cx: 9, cy: 4.5, deg: 0 }] };
 }
 
 const shift = (figure: Figure, dx: number, dy: number) => figure.heads.map((h) => ({ ...h, cx: h.cx + dx, cy: h.cy + dy }));
@@ -298,74 +358,152 @@ function turn(figure: Figure, deg: number): Figure {
 const quarter = (map: PixelMap): PixelMap =>
   [...map[0]].map((_, x) => map.map((row) => row[x]).reverse().join(''));
 
-/** Stamps the heads on (growing the map if one sticks out) and adds the outline */
+const quarters = (deg: number) => ((Math.round(deg / 90) % 4) + 4) % 4;
+
+/** Drops the rows and columns of `map` outside the bounding box of `mask` */
+function cropTo(map: PixelMap, mask: PixelMap) {
+  const rows = mask.map((row, y) => (/[^.]/.test(row) ? y : -1)).filter((y) => y >= 0);
+  let left = Infinity;
+  let right = -1;
+  for (const row of mask) {
+    const first = row.search(/[^.]/);
+    if (first < 0) continue;
+    left = Math.min(left, first);
+    right = Math.max(right, row.length - 1 - [...row].reverse().join('').search(/[^.]/));
+  }
+  const top = rows[0];
+  return { map: map.slice(top, rows.at(-1)! + 1).map((row) => row.slice(left, right + 1)), left, top };
+}
+
+/**
+ * Stamps the heads on (growing the map where the head can reach) and adds the outline. The head is
+ * cropped to what any hairstyle could cover, so every style gives a map of the same size.
+ */
 function finish(figure: Figure): PixelMap {
   let map = figure.map;
-  for (const { head, cx, cy, deg } of figure.heads) {
+  for (const { head, union, cx, cy, deg } of figure.heads) {
     let turned = head;
-    for (let i = 0; i < (((Math.round(deg / 90) % 4) + 4) % 4); i++) turned = quarter(turned);
+    let mask = union;
+    for (let i = 0; i < quarters(deg); i++) {
+      turned = quarter(turned);
+      mask = quarter(mask);
+    }
+    const crop = cropTo(turned, mask);
     const w = Math.max(...map.map((row) => row.length));
-    const x = Math.round(cx - turned[0].length / 2);
-    const y = Math.round(cy - turned.length / 2);
+    const x = Math.round(cx - turned[0].length / 2) + crop.left;
+    const y = Math.round(cy - turned.length / 2) + crop.top;
+    const cw = crop.map[0].length;
     const left = Math.max(0, -x);
     const top = Math.max(0, -y);
-    const width = Math.max(w + left, x + left + turned[0].length);
-    const height = Math.max(map.length + top, y + top + turned.length);
+    const width = Math.max(w + left, x + left + cw);
+    const height = Math.max(map.length + top, y + top + crop.map.length);
     map = compose([
       [map, left, top],
-      [turned, x + left, y + top],
+      [crop.map, x + left, y + top],
     ], width, height);
   }
   return outline(map);
 }
 
-// ---------- Tori ----------
+type HeadGrid = { head: PixelMap; union: PixelMap };
 
-export const toriWalkA = finish(pose(upper(toriHead, 'down'), legsStand));
-export const toriWalkB = finish(pose(upper(toriHead, 'down'), legsPass));
+/*
+ * Lying flat on the back after the throw, seen from the side: head on the left (towards Tori),
+ * face up, the near arm out on the mat, legs straight, toes up. Drawn without the head (stamped on).
+ */
+const lyingBody: PixelMap = [
+  '..............................',
+  '..............................',
+  '...............BB..........S..',
+  '........nWWWWWWBBWWW.......SS.',
+  '.......sWWwwwwwBBwwg.......SSs',
+  '.......sWWgwwwwBBwwgWWWWWWWSSs',
+  '........WwWgwwwBBwwgwwwwwwwgSs',
+  '........wwwWggwwwwwgwwwwwwwgss',
+  '.........ggggSSsgggggggggggg..',
+];
 
-// Crouched with the hands down (F2), the body the roll turns over
-const rollCrouch = pose(upper(toriHead, 'forward'), legsSquat, { x: 6, legsX: 5, lean: 70 });
+/** All the frames for one hairstyle (null: bald, the shared body) */
+function buildFrames(style: HairStyle | null) {
+  const head: HeadGrid = { head: front.grid(style), union: front.union };
+  const lyingHead: HeadGrid = { head: side.grid(style), union: side.union };
 
-// Forward roll (mae mawari ukemi): F1 step in, F2 hands down, F3 over the right shoulder,
-// F4 curled on the back, F5 coming up; F6 is the standing pose (toriWalkA)
-export const toriRoll = [
-  finish(pose(upper(toriHead, 'forward'), legsLunge, { x: 4, legsX: 3, lean: 25 })),
-  finish(rollCrouch),
-  finish(turn(rollCrouch, 75)),
-  finish(turn(rollCrouch, 230)),
-  finish(pose(upper(toriHead, 'forward'), legsKneel, { x: 4, legsX: 4, lean: 10 })),
-].map(bottomAlign);
+  // ---------- Tori ----------
 
-// Kata-guruma: drop under Uke (2 frames), lift with the knees bent then straight, throw, and win
-export const toriEntry = [
-  finish(pose(upper(toriHead, 'forward'), legsBent, { legsX: 6, lean: 15 })),
-  finish(pose(upper(toriHead, 'forward'), legsSquat, { x: 5, legsX: 5, lean: 35 })),
-].map(bottomAlign);
+  const walkA = finish(pose(upper(head, 'down'), legsStand));
+  const walkB = finish(pose(upper(head, 'down'), legsPass));
 
-export const toriLift = [
-  finish(pose(upper(toriHead, 'up'), legsBent, { legsX: 6 })),
-  finish(pose(upper(toriHead, 'up'), legsStand)),
-].map(bottomAlign);
+  // Crouched with the hands down (F2), the body the roll turns over
+  const rollCrouch = pose(upper(head, 'forward'), legsSquat, { x: 6, legsX: 5, lean: 70 });
 
-// The pull down after the throw: arms forward, knees bent
-export const toriThrow = bottomAlign(finish(pose(upper(toriHead, 'forward'), legsBent, { legsX: 6, lean: 20 })));
-export const toriIppon = finish(pose(upper(toriHead, 'fist'), legsStand));
+  // Forward roll (mae mawari ukemi): F1 step in, F2 hands down, F3 over the right shoulder,
+  // F4 curled on the back, F5 coming up; F6 is the standing pose (walkA)
+  const roll = [
+    finish(pose(upper(head, 'forward'), legsLunge, { x: 4, legsX: 3, lean: 25 })),
+    finish(rollCrouch),
+    finish(turn(rollCrouch, 75)),
+    finish(turn(rollCrouch, 230)),
+    finish(pose(upper(head, 'forward'), legsKneel, { x: 4, legsX: 4, lean: 10 })),
+  ].map(bottomAlign);
 
-// ---------- Uke (mirrored: faces left) ----------
+  // Kata-guruma: drop under Uke (2 frames), lift with the knees bent then straight, throw, and win
+  const entry = [
+    finish(pose(upper(head, 'forward'), legsBent, { legsX: 6, lean: 15 })),
+    finish(pose(upper(head, 'forward'), legsSquat, { x: 5, legsX: 5, lean: 35 })),
+  ].map(bottomAlign);
+  const lift = [finish(pose(upper(head, 'up'), legsBent, { legsX: 6 })), finish(pose(upper(head, 'up'), legsStand))].map(bottomAlign);
+  // The pull down after the throw: arms forward, knees bent
+  const pull = bottomAlign(finish(pose(upper(head, 'forward'), legsBent, { legsX: 6, lean: 20 })));
+  const ippon = finish(pose(upper(head, 'fist'), legsStand));
 
-export const ukeStand = mirror(finish(pose(upper(ukeHead, 'down'), legsStand)));
+  // ---------- Uke (mirrored: faces left) ----------
 
-// Pulled off balance, bent forward with an arm reaching over Tori's shoulder
-export const ukeBent = bottomAlign(mirror(finish(pose(upper(ukeHead, 'forward'), legsStand, { x: 5, legsX: 7, lean: 40 }))));
+  const stand = mirror(finish(pose(upper(head, 'down'), legsStand)));
+  // Pulled off balance, bent forward with an arm reaching over Tori's shoulder
+  const bent = bottomAlign(mirror(finish(pose(upper(head, 'forward'), legsStand, { x: 5, legsX: 7, lean: 40 }))));
+  // Flat on the back, the head (profile, face up) at the left end of the body
+  const flat: Figure = { map: lyingBody, heads: [{ ...lyingHead, cx: 2, cy: 4.5, deg: 0 }] };
+  const ground = finish(flat);
+  // On Tori's shoulders: the landing pose upside down (face down across his shoulders), then 3
+  // more steps of 60° along the arc, the last one exactly on the back (180°)
+  const thrown = [0, 60, 120, 180].map((deg) => finish(turn(turn(flat, 180), deg)));
 
-// Lying on his back after the throw: head on the left (towards Tori), face up
-const ukeFlat = turn(pose(upper(ukeHead, 'down'), legsStand), -90);
-export const ukeGround = finish(ukeFlat);
+  return {
+    toriWalkA: walkA,
+    toriWalkB: walkB,
+    ...Object.fromEntries(roll.map((map, i) => [`toriRoll${i + 1}`, map])),
+    toriEntry1: entry[0],
+    toriEntry2: entry[1],
+    toriLift1: lift[0],
+    toriLift2: lift[1],
+    toriThrow: pull,
+    toriIppon: ippon,
+    ukeStand: stand,
+    ukeBent: bent,
+    ...Object.fromEntries(thrown.map((map, i) => [`ukeThrow${i}`, map])),
+    ukeGround: ground,
+  } as Record<string, PixelMap>;
+}
 
-// On Tori's shoulders: the landing pose upside down, so the 180° throw ends exactly on it. The
-// throw is 4 rotation steps of that pose: 0°, 60°, 120°, 180°.
-export const ukeThrow = [0, 60, 120, 180].map((deg) => finish(turn(turn(ukeFlat, 180), deg)));
+/** One frame: the shared body, and per hairstyle only the pixels that hairstyle changes */
+export interface JudoFrame {
+  body: PixelMap;
+  hair: Record<HairStyle, PixelMap>;
+}
+
+const bald = buildFrames(null);
+const styled = Object.fromEntries(HAIR_STYLES.map((style) => [style, buildFrames(style)])) as Record<HairStyle, Record<string, PixelMap>>;
+
+/** Cells where `map` differs from `base` (same size), everything else empty */
+const diff = (map: PixelMap, base: PixelMap): PixelMap =>
+  map.map((row, y) => [...row].map((char, x) => (char === (base[y]?.[x] ?? '.') ? '.' : char)).join(''));
+
+export const judoFrames: Record<string, JudoFrame> = Object.fromEntries(
+  Object.entries(bald).map(([name, body]) => [
+    name,
+    { body, hair: Object.fromEntries(HAIR_STYLES.map((style) => [style, diff(styled[style][name], body)])) as Record<HairStyle, PixelMap> },
+  ]),
+);
 
 /** Pads the top so the map is 28 rows tall: every frame shares one bottom (the feet) */
 function bottomAlign(map: PixelMap): PixelMap {

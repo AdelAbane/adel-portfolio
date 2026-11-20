@@ -2,25 +2,22 @@
  * The homepage's projects, in English and French. Edit freely: the Projects section renders
  * straight from here. Section titles and labels live in src/i18n/en.json and fr.json.
  *
- * No photos: each card shows a pixel-art illustration (ProjectArt.astro), picked by `art`.
- * Texts marked [TODO] are placeholders.
+ * Each card shows a pre-rendered 3D still: public/media/projects/<slug>.webp (and -light, -800
+ * variants), made by `node scripts/render-project-art.mjs` from scripts/project-art/scenes.js.
+ * The detail panels only state what the descriptions say: no invented features or numbers.
  */
 
 export type Locale = 'en' | 'fr';
 type Text = Record<Locale, string>;
 
-export type Status = 'live' | 'progress' | 'ongoing';
-
-/** Each card's media: a pixel-art illustration drawn in ProjectArt.astro (no photos) */
-export type Art = 'website' | 'homelab' | 'roblox' | 'wireguard' | 'mealfinder';
+export type Status = 'live' | 'progress' | 'ongoing' | 'done';
 
 export interface Project {
   slug: string;
   title: Text;
   kind: Text;
   status: Status;
-  art: Art;
-  /** Behind the illustration */
+  /** Behind the render while it loads */
   gradient: string;
   description: Text;
   tags: string[];
@@ -34,7 +31,7 @@ export interface Project {
   links: { github?: string; demo?: string };
 }
 
-export type WorkshopStatus = 'idea' | 'prototype' | 'progress';
+export type WorkshopStatus = 'idea' | 'planning' | 'prototype' | 'progress';
 
 /** "In the workshop": smaller things on the bench, one line each */
 export interface WorkshopItem {
@@ -43,14 +40,7 @@ export interface WorkshopItem {
   status: WorkshopStatus;
 }
 
-const todo = (en: string, fr: string): Text => ({ en: `[TODO] ${en}`, fr: `[TODO] ${fr}` });
-
-// Placeholder detail texts, until the real ones are written
-const placeholder = {
-  what: todo('What it is: who it is for and what problem it solves.', 'Ce que c’est : pour qui, et quel problème ça règle.'),
-  built: todo('What I built: the parts I designed and coded myself.', 'Ce que j’ai construit : les parties que j’ai conçues et codées moi-même.'),
-  learned: todo('What I learned: the lesson this project taught me.', 'Ce que j’ai appris : la leçon que ce projet m’a apprise.'),
-};
+const GITHUB = 'https://github.com/AdelAbane';
 
 export const featuredProjects: Project[] = [
   {
@@ -58,92 +48,143 @@ export const featuredProjects: Project[] = [
     title: { en: 'This website', fr: 'Ce site' },
     kind: { en: 'Web', fr: 'Web' },
     status: 'ongoing',
-    art: 'website',
     gradient: 'linear-gradient(135deg, #0B1A3A, #1D4ED8)',
     description: {
-      en: 'A retro arcade portfolio: a pixel galaxy, a scroll-driven garage and a 3D car you can pop the hood on, in English and French.',
-      fr: 'Un portfolio façon arcade rétro : une galaxie en pixels, un garage qui s’ouvre au défilement et une voiture 3D dont on peut ouvrir le capot, en français et en anglais.',
+      en: 'My portfolio, built with Astro, Three.js and GSAP: a pixel-art galaxy, a 3D garage and scroll-driven animations, in English and French.',
+      fr: 'Mon portfolio, construit avec Astro, Three.js et GSAP : une galaxie en pixel art, un garage 3D et des animations au défilement, en français et en anglais.',
     },
     tags: ['Astro', 'Three.js', 'GSAP', 'i18n'],
-    details: { ...placeholder },
+    details: {
+      what: { en: 'My portfolio, in English and French.', fr: 'Mon portfolio, en français et en anglais.' },
+      built: {
+        en: 'The site with Astro, a pixel-art galaxy, a 3D garage with Three.js, and scroll-driven animations with GSAP.',
+        fr: 'Le site avec Astro, une galaxie en pixel art, un garage 3D avec Three.js et des animations au défilement avec GSAP.',
+      },
+      learned: {
+        en: 'How to bring Astro, Three.js and GSAP together in one site, in two languages.',
+        fr: 'Comment réunir Astro, Three.js et GSAP dans un seul site, en deux langues.',
+      },
+    },
     stack: ['Astro', 'TypeScript', 'Three.js', 'GSAP', 'i18n'],
-    links: {},
+    links: { github: GITHUB },
   },
   {
     slug: 'homelab',
     title: { en: 'Homelab', fr: 'Homelab' },
     kind: { en: 'Infrastructure', fr: 'Infrastructure' },
     status: 'ongoing',
-    art: 'homelab',
     gradient: 'linear-gradient(135deg, #0C4A6E, #2563EB)',
     description: {
       en: 'Pi-hole on a headless Raspberry Pi, Tailscale for remote access, and an old Dell rebuilt as a NAS on OpenMediaVault.',
       fr: 'Pi-hole sur un Raspberry Pi sans écran, Tailscale pour l’accès à distance, et un vieux Dell reconverti en NAS sous OpenMediaVault.',
     },
     tags: ['Linux', 'Docker', 'Tailscale'],
-    details: { ...placeholder },
+    details: {
+      what: { en: 'A small home server setup.', fr: 'Un petit serveur maison.' },
+      built: {
+        en: 'Pi-hole on a headless Raspberry Pi, Tailscale for remote access, and an old Dell rebuilt as a NAS on OpenMediaVault.',
+        fr: 'Pi-hole sur un Raspberry Pi sans écran, Tailscale pour l’accès à distance, et un vieux Dell reconverti en NAS sous OpenMediaVault.',
+      },
+      learned: {
+        en: 'Running services on my own Linux hardware and reaching them remotely.',
+        fr: 'Faire tourner des services sur mon propre matériel Linux et y accéder à distance.',
+      },
+    },
     stack: ['Linux', 'Docker', 'Raspberry Pi', 'Tailscale', 'OpenMediaVault'],
-    links: {},
+    links: { github: GITHUB },
   },
   {
     slug: 'roblox-games',
     title: { en: 'Roblox games', fr: 'Jeux Roblox' },
     kind: { en: 'Game dev', fr: 'Jeux vidéo' },
     status: 'progress',
-    art: 'roblox',
     gradient: 'linear-gradient(135deg, #312E81, #60A5FA)',
     description: {
       en: 'I build games in Roblox Studio with Luau: game loops, player systems, maps and UI.',
       fr: 'Je crée des jeux dans Roblox Studio avec Luau : boucles de jeu, systèmes de joueurs, cartes et interfaces.',
     },
     tags: ['Roblox Studio', 'Luau'],
-    details: { ...placeholder },
+    details: {
+      what: { en: 'Games I build in Roblox Studio.', fr: 'Des jeux que je crée dans Roblox Studio.' },
+      built: {
+        en: 'Game loops, player systems, maps and UI, written in Luau.',
+        fr: 'Des boucles de jeu, des systèmes de joueurs, des cartes et des interfaces, écrits en Luau.',
+      },
+      learned: {
+        en: 'How the parts of a game fit together, from the game loop to the interface.',
+        fr: 'Comment les parties d’un jeu s’assemblent, de la boucle de jeu à l’interface.',
+      },
+    },
     stack: ['Roblox Studio', 'Luau', 'Blender'],
-    links: {},
+    links: { github: GITHUB },
   },
   {
     slug: 'wireguard-vpn-lab',
     title: { en: 'WireGuard VPN lab', fr: 'Labo VPN WireGuard' },
     kind: { en: 'Networking', fr: 'Réseau' },
-    status: 'live',
-    art: 'wireguard',
+    status: 'done',
     gradient: 'linear-gradient(135deg, #0F172A, #0E7490)',
-    description: todo('One line on the VPN lab: what it connects and why.', 'Une ligne sur le labo VPN : ce qu’il relie et pourquoi.'),
+    description: {
+      en: 'An encrypted WireGuard VPN between virtual machines, built and tested with a teammate: keys, peers, IP addressing and routing.',
+      fr: 'Un VPN WireGuard chiffré entre machines virtuelles, conçu et testé en équipe : clés, pairs, adressage IP et routage.',
+    },
     tags: ['WireGuard', 'Linux'],
-    details: { ...placeholder },
+    details: {
+      what: { en: 'An encrypted WireGuard VPN between virtual machines.', fr: 'Un VPN WireGuard chiffré entre machines virtuelles.' },
+      built: {
+        en: 'With a teammate: the keys, the peers, the IP addressing and the routing, then we tested it.',
+        fr: 'En équipe : les clés, les pairs, l’adressage IP et le routage, puis nous l’avons testé.',
+      },
+      learned: {
+        en: 'What a VPN needs to work (keys, peers, addressing, routing), and how to build and test it as a team.',
+        fr: 'Ce qu’il faut pour qu’un VPN fonctionne (clés, pairs, adressage, routage), et comment le construire et le tester en équipe.',
+      },
+    },
     stack: ['WireGuard', 'Linux'],
-    links: {},
+    links: { github: GITHUB },
   },
   {
     slug: 'meal-finder',
     title: { en: 'Meal Finder', fr: 'Meal Finder' },
     kind: { en: 'Web app', fr: 'Application web' },
-    status: 'live',
-    art: 'mealfinder',
+    status: 'done',
     gradient: 'linear-gradient(135deg, #1E3A8A, #7C3AED)',
-    description: todo('One line on Meal Finder: what it searches and how.', 'Une ligne sur Meal Finder : ce qu’il cherche et comment.'),
+    description: {
+      en: 'A single-page React app that searches recipes from a public API, with client-side routing and reusable components.',
+      fr: 'Une application React monopage qui recherche des recettes via une API publique, avec routage côté client et composants réutilisables.',
+    },
     tags: ['React', 'JavaScript'],
-    details: { ...placeholder },
+    details: {
+      what: { en: 'A single-page React app for searching recipes.', fr: 'Une application React monopage pour chercher des recettes.' },
+      built: {
+        en: 'Recipe search from a public API, client-side routing and reusable components.',
+        fr: 'La recherche de recettes via une API publique, le routage côté client et des composants réutilisables.',
+      },
+      learned: {
+        en: 'Using a public API in React, routing on the client, and splitting an interface into reusable components.',
+        fr: 'Utiliser une API publique avec React, gérer le routage côté client et découper une interface en composants réutilisables.',
+      },
+    },
     stack: ['React', 'JavaScript', 'REST API'],
-    links: {},
+    links: { github: GITHUB },
   },
 ];
 
 export const workshop: WorkshopItem[] = [
   {
-    name: todo('Project name', 'Nom du projet'),
-    line: todo('One line about it.', 'Une ligne pour le décrire.'),
-    status: 'idea',
+    name: { en: 'App in development', fr: 'Application en développement' },
+    line: { en: 'A new app I’m planning and building next.', fr: 'Une nouvelle application que je planifie et construis.' },
+    status: 'planning',
   },
   {
-    name: todo('Project name', 'Nom du projet'),
-    line: todo('One line about it.', 'Une ligne pour le décrire.'),
-    status: 'prototype',
-  },
-  {
-    name: todo('Project name', 'Nom du projet'),
-    line: todo('One line about it.', 'Une ligne pour le décrire.'),
+    name: { en: 'Game dev in Roblox Studio', fr: 'Création de jeux dans Roblox Studio' },
+    line: { en: 'Building and improving games with Luau.', fr: 'Je crée et j’améliore des jeux avec Luau.' },
     status: 'progress',
+  },
+  {
+    name: { en: 'More projects coming', fr: 'D’autres projets à venir' },
+    line: { en: 'New builds on the way.', fr: 'De nouveaux projets en route.' },
+    status: 'idea',
   },
 ];
 

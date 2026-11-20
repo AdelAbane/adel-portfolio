@@ -1,0 +1,595 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import PixelSprite from '../components/PixelSprite.astro';
+import { getTranslations } from '../i18n';
+import { npcFrames, npcPalette } from '../lib/npc';
+
+/*
+ * Arcade "GAME OVER", then a lost explorer NPC (map upside down, compass spinning) who knows the
+ * way back: an RPG dialogue box, typed out, and two choices. Vercel serves it (dist/404.html) for
+ * every missing page, so the language is picked in the browser: French for /fr/… URLs or a French
+ * browser.
+ */
+const t = getTranslations('en');
+const PX = 5;
+const dialogue = {
+  en: "Huh? You're lost too, traveller? This page doesn't exist… but I know the way back.",
+  fr: "Hein ? Toi aussi tu es perdu, voyageur ? Cette page n'existe pas… mais je connais le chemin du retour.",
+};
+---
+
+<Base title="404 · Game over · Adel Abane" description="This page doesn't exist." noindex>
+  <Header t={t} page="other" />
+  <main class="over">
+    <div class="sky" aria-hidden="true">
+      <img class="sky-dark" src="/media/galaxy-static.webp" alt="" width="1600" height="846" />
+      <img class="sky-light" src="/media/galaxy-static-light.webp" alt="" width="1600" height="846" />
+    </div>
+
+    <h1 class="title" data-text="GAME OVER">GAME OVER</h1>
+
+
+    <p class="countdown" aria-hidden="true">
+      <span class="continue-q">CONTINUE?</span> <span class="count">9</span>
+    </p>
+    <a class="continue" href="/" data-fr-href="/fr/"><span aria-hidden="true">▶</span> CONTINUE</a>
+
+    <!-- The lost explorer: looks left and right, a "?" over his head, his compass spinning -->
+    <div class="scene" aria-hidden="true">
+      <div class="npc">
+        <span class="bubble">?</span>
+        {npcFrames.map((map, i) => (
+          <div class={`npc-frame npc-frame-${i}`}><PixelSprite map={map} palette={npcPalette} size={PX} /></div>
+        ))}
+        <svg class="compass" viewBox="0 0 12 12" width="48" height="48" shape-rendering="crispEdges">
+          <path d="M3 0h6v1h2v2h1v6h-1v2h-2v1H3v-1H1V9H0V3h1V1h2z" fill="#0A0F1E" />
+          <path d="M3 1h6v1h1v1h1v6h-1v1h-1v1H3v-1H2V9H1V3h1V2h1z" fill="#C9A44C" />
+          <path d="M3 2h6v1h1v6h-1v1H3V9H2V3h1z" fill="#F3E7C9" />
+          <g class="needle"><path d="M5 3h2v3H5z" fill="#E5484D" /><path d="M5 6h2v3H5z" fill="#3A4560" /></g>
+        </svg>
+      </div>
+      <div class="ground"></div>
+    </div>
+
+    <!-- RPG dialogue: the full sentence for screen readers, typed out letter by letter on screen -->
+    <div class="dialogue">
+      <p class="speech">
+        <span class="sr-only" data-fr={dialogue.fr}>{dialogue.en}</span>
+        <span class="typed" aria-hidden="true" data-en={dialogue.en} data-fr={dialogue.fr}>{dialogue.en}</span>
+      </p>
+      <ul class="choices">
+        <li>
+          <a class="choice" href="/" data-fr-href="/fr/"><span class="cursor" aria-hidden="true">▶</span><span data-fr="Retour à la base">Back to base</span></a>
+        </li>
+        <li>
+          <a class="choice" href="/#projects" data-fr-href="/fr/#projects"><span class="cursor" aria-hidden="true">▶</span><span data-fr="Explorer les projets">Explore projects</span></a>
+        </li>
+      </ul>
+    </div>
+  </main>
+</Base>
+
+<script>
+  // French for /fr/… URLs or a French browser
+  const french = window.location.pathname.startsWith('/fr/') || navigator.language.toLowerCase().startsWith('fr');
+  if (french) {
+    document.documentElement.lang = 'fr';
+    for (const el of document.querySelectorAll<HTMLElement>('[data-fr]')) el.textContent = el.dataset.fr!;
+    for (const el of document.querySelectorAll<HTMLAnchorElement>('[data-fr-href]')) el.href = el.dataset.frHref!;
+  }
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // The NPC's line, typed out letter by letter (all at once with reduced motion)
+  const typed = document.querySelector<HTMLElement>('.typed');
+  if (typed) {
+    const text = (french ? typed.dataset.fr : typed.dataset.en) ?? '';
+    if (reduced) typed.textContent = text;
+    else {
+      typed.textContent = '';
+      let i = 0;
+      const type = window.setInterval(() => {
+        i += 1;
+        typed.textContent = text.slice(0, i);
+        if (i >= text.length) window.clearInterval(type);
+      }, 38);
+    }
+  }
+
+  // The choices: ↑ / ↓ move the ▶ cursor, Enter follows the link, a click works too
+  const choices = [...document.querySelectorAll<HTMLAnchorElement>('.choice')];
+  choices[0]?.classList.add('is-selected');
+  const select = (index: number) => {
+    choices.forEach((choice, i) => choice.classList.toggle('is-selected', i === index));
+    choices[index].focus({ preventScroll: true });
+  };
+  choices.forEach((choice, i) => {
+    choice.addEventListener('pointerenter', () => select(i));
+    choice.addEventListener('focus', () => choices.forEach((c, j) => c.classList.toggle('is-selected', j === i)));
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    event.preventDefault();
+    const current = choices.findIndex((c) => c.classList.contains('is-selected'));
+    select((current + (event.key === 'ArrowDown' ? 1 : choices.length - 1)) % choices.length);
+  });
+  // Enter with nothing focused yet: the selected choice
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !(document.activeElement instanceof HTMLAnchorElement)) {
+      choices.find((c) => c.classList.contains('is-selected'))?.click();
+    }
+  });
+
+  // CONTINUE? 9… 8… down to 0, then INSERT COIN (no redirect)
+  const countdown = document.querySelector<HTMLElement>('.countdown');
+  const count = countdown?.querySelector<HTMLElement>('.count');
+  let n = 9;
+  const tick = window.setInterval(() => {
+    n -= 1;
+    if (n > 0 && count) count.textContent = String(n);
+    else {
+      window.clearInterval(tick);
+      countdown?.classList.add('is-over');
+      if (countdown) countdown.textContent = 'INSERT COIN';
+    }
+  }, 1000);
+</script>
+
+<style>
+  .over {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    min-height: 100vh;
+    min-height: 100svh;
+    margin-top: calc(var(--header-h) * -1);
+    padding: calc(var(--header-h) + 32px) 16px 56px;
+    overflow: hidden;
+    color: #e6f3ff;
+    text-align: center;
+    isolation: isolate;
+  }
+
+  :global([data-theme='light']) .over {
+    color: #0a1a33;
+  }
+
+  /* The pre-rendered galaxy, bottom-aligned like the hero */
+  .sky {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: #050b1a;
+  }
+
+  .sky img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center bottom;
+    image-rendering: pixelated;
+  }
+
+  .sky-light,
+  :global([data-theme='light']) .sky-dark {
+    display: none;
+  }
+
+  :global([data-theme='light']) .sky-light {
+    display: block;
+  }
+
+  :global([data-theme='light']) .sky {
+    background: #cfe3f8;
+  }
+
+  /* ---------- GAME OVER: a quick glitch on load ---------- */
+
+  .title {
+    position: relative;
+    margin: 0;
+    font-family: var(--font-pixel);
+    font-size: clamp(34px, 9vw, 96px);
+    font-weight: normal;
+    line-height: 1.1;
+    color: #ffffff;
+    text-shadow:
+      0 6px 0 #1d4ed8,
+      0 10px 24px rgba(5, 11, 26, 0.6);
+  }
+
+  :global([data-theme='light']) .title {
+    color: #0a1a33;
+    text-shadow: 0 6px 0 #5cc8ff;
+  }
+
+  .title::before,
+  .title::after {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .title::before {
+    color: #5cc8ff;
+    animation: glitch-a 0.7s steps(2, jump-none) 0.15s both;
+  }
+
+  .title::after {
+    color: #f87171;
+    animation: glitch-b 0.7s steps(2, jump-none) 0.15s both;
+  }
+
+  /* ---------- The lost explorer ---------- */
+
+  .scene {
+    width: min(100%, 360px);
+    margin-top: 18px;
+  }
+
+  .npc {
+    position: relative;
+    width: 120px;
+    height: 140px;
+    margin: 0 auto;
+  }
+
+  /* Two idle frames, looking left then right (steps: one or the other) */
+  .npc-frame {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+  }
+
+  .npc-frame-0 {
+    animation: look-a 1.6s steps(1) infinite;
+  }
+
+  .npc-frame-1 {
+    opacity: 0;
+    animation: look-b 1.6s steps(1) infinite;
+  }
+
+  .bubble {
+    position: absolute;
+    top: -46px;
+    left: 70px;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 3px solid #0a0f1e;
+    background: #ffffff;
+    box-shadow: 4px 4px 0 rgba(10, 15, 30, 0.45);
+    color: #0a0f1e;
+    font-family: var(--font-pixel);
+    font-size: 16px;
+    animation: bob 1s steps(2, jump-none) infinite alternate;
+  }
+
+  /* Its pixel tail, pointing at his head */
+  .bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -9px;
+    left: 4px;
+    width: 6px;
+    height: 6px;
+    background: #ffffff;
+    box-shadow:
+      -3px 3px 0 #0a0f1e,
+      0 3px 0 #0a0f1e;
+  }
+
+  .compass {
+    position: absolute;
+    right: -64px;
+    bottom: 0;
+  }
+
+  .needle {
+    transform-box: view-box;
+    transform-origin: 6px 6px;
+    animation: lost 2.3s steps(1) infinite;
+  }
+
+  .ground {
+    height: 20px;
+    background:
+      linear-gradient(#3b82f6 0 3px, transparent 3px) 0 0 / 100% 100%,
+      repeating-linear-gradient(90deg, #12285a 0 2px, #0b1a3a 2px 30px);
+    border-bottom: 2px solid #12285a;
+  }
+
+  :global([data-theme='light']) .ground {
+    background:
+      linear-gradient(#5cc8ff 0 3px, transparent 3px) 0 0 / 100% 100%,
+      repeating-linear-gradient(90deg, #9cc8ee 0 2px, #e8f2fd 2px 30px);
+    border-bottom-color: #9cc8ee;
+  }
+
+  /* ---------- Continue ---------- */
+
+  .countdown {
+    margin: 0;
+    font-family: var(--font-pixel);
+    font-size: clamp(14px, 3.4vw, 22px);
+  }
+
+  .count {
+    color: #fbbf24;
+  }
+
+  :global([data-theme='light']) .count {
+    color: #b45309;
+  }
+
+  .countdown.is-over {
+    color: #fbbf24;
+    animation: blink 1s steps(1) infinite;
+  }
+
+  :global([data-theme='light']) .countdown.is-over {
+    color: #b45309;
+  }
+
+  .continue {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 48px;
+    padding: 0 22px;
+    border: 1px solid rgba(190, 224, 255, 0.22);
+    border-radius: 999px;
+    background: rgba(10, 22, 48, 0.55);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    backdrop-filter: blur(16px) saturate(160%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    color: #e6f3ff;
+    font-family: var(--font-pixel);
+    font-size: 13px;
+    text-decoration: none;
+    animation: blink 1.2s steps(1) infinite;
+  }
+
+  .continue:hover,
+  .continue:focus-visible {
+    animation: none;
+    border-color: #5cc8ff;
+  }
+
+  .continue:focus-visible {
+    outline: 2px solid #5cc8ff;
+    outline-offset: 3px;
+  }
+
+  :global([data-theme='light']) .continue {
+    border-color: rgba(10, 42, 94, 0.14);
+    background: rgba(255, 255, 255, 0.7);
+    color: #0a1a33;
+  }
+
+
+  /* ---------- RPG dialogue ---------- */
+
+  .dialogue {
+    width: min(100%, 640px);
+    padding: 18px 20px;
+    border: 4px solid #e6f3ff;
+    outline: 4px solid #0a0f1e;
+    background: rgba(5, 11, 26, 0.88);
+    box-shadow:
+      inset 0 0 0 4px #1d4ed8,
+      8px 8px 0 rgba(5, 11, 26, 0.5);
+    text-align: left;
+  }
+
+  :global([data-theme='light']) .dialogue {
+    border-color: #0a1a33;
+    outline-color: #ffffff;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow:
+      inset 0 0 0 4px #5cc8ff,
+      8px 8px 0 rgba(10, 26, 51, 0.2);
+  }
+
+  .speech {
+    min-height: 4.6em;
+    margin: 0 0 14px;
+    font-family: var(--font-pixel);
+    font-size: 13px;
+    line-height: 1.8;
+  }
+
+  .choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 28px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .choice {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    color: inherit;
+    font-family: var(--font-pixel);
+    font-size: 12px;
+    text-decoration: none;
+  }
+
+  .cursor {
+    color: #5cc8ff;
+    visibility: hidden;
+  }
+
+  :global([data-theme='light']) .cursor {
+    color: #0a56b8;
+  }
+
+  .choice.is-selected .cursor {
+    visibility: visible;
+    animation: blink 0.8s steps(1) infinite;
+  }
+
+  .choice.is-selected,
+  .choice:focus-visible {
+    color: #5cc8ff;
+    outline: none;
+  }
+
+  :global([data-theme='light']) .choice.is-selected {
+    color: #0a56b8;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 480px) {
+    .speech {
+      font-size: 11px;
+    }
+
+    .choice {
+      font-size: 11px;
+    }
+
+    .compass {
+      right: -52px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .title::before,
+    .title::after,
+    .continue,
+    .countdown.is-over,
+    .npc-frame,
+    .bubble,
+    .needle,
+    .choice.is-selected .cursor {
+      animation: none;
+    }
+  }
+
+  @keyframes look-a {
+    0%,
+    49.99% {
+      opacity: 1;
+    }
+    50%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes look-b {
+    0%,
+    49.99% {
+      opacity: 0;
+    }
+    50%,
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes bob {
+    to {
+      transform: translateY(-6px);
+    }
+  }
+
+  /* Can't make up its mind */
+  @keyframes lost {
+    0% {
+      transform: rotate(0deg);
+    }
+    12% {
+      transform: rotate(140deg);
+    }
+    24% {
+      transform: rotate(80deg);
+    }
+    38% {
+      transform: rotate(250deg);
+    }
+    50% {
+      transform: rotate(200deg);
+    }
+    63% {
+      transform: rotate(330deg);
+    }
+    76% {
+      transform: rotate(30deg);
+    }
+    88% {
+      transform: rotate(170deg);
+    }
+  }
+
+  @keyframes blink {
+    50% {
+      opacity: 0.25;
+    }
+  }
+
+  @keyframes glitch-a {
+    0% {
+      opacity: 1;
+      transform: translate(-6px, -2px);
+      clip-path: inset(10% 0 55% 0);
+    }
+    33% {
+      opacity: 1;
+      transform: translate(5px, 1px);
+      clip-path: inset(60% 0 10% 0);
+    }
+    66% {
+      opacity: 1;
+      transform: translate(-3px, 2px);
+      clip-path: inset(30% 0 40% 0);
+    }
+    100% {
+      opacity: 0;
+      transform: none;
+    }
+  }
+
+  @keyframes glitch-b {
+    0% {
+      opacity: 1;
+      transform: translate(6px, 2px);
+      clip-path: inset(50% 0 20% 0);
+    }
+    33% {
+      opacity: 1;
+      transform: translate(-5px, -1px);
+      clip-path: inset(5% 0 70% 0);
+    }
+    66% {
+      opacity: 1;
+      transform: translate(3px, -2px);
+      clip-path: inset(70% 0 5% 0);
+    }
+    100% {
+      opacity: 0;
+      transform: none;
+    }
+  }
+</style>

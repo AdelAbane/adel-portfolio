@@ -1,7 +1,7 @@
 {
   "meta": {
-    "title": "Adel — Portfolio",
-    "description": "Portfolio personnel d'Adel."
+    "title": "Adel Abane · Étudiant en informatique · Montréal",
+    "description": "Adel Abane, étudiant en informatique à Montréal. Des projets de jeux, d'IA et d'infrastructure, dans un portfolio arcade rétro avec un garage 3D."
   },
   "header": {
     "navLabel": "Principale",
@@ -134,12 +134,17 @@
       ]
     },
     "bio": [
-      "Je suis étudiant en informatique au Cégep Champlain–Saint-Lambert. Que ce soit un moteur ou une application, je veux comprendre comment ça marche : le démonter, comprendre, le remonter en mieux.",
-      "C'est comme ça que j'ai appris à coder, en créant des jeux, des chatbots IA pour des entreprises locales et un homelab. Pareil pour les go-karts : je les achète, je les répare, je les revends."
+      "Je suis étudiant en Techniques de l'informatique au Cégep Champlain–Saint-Lambert, et j'ai toujours eu besoin de comprendre comment les choses fonctionnent. Moteurs, électronique, logiciels : je les démonte, je les comprends et je les remonte.",
+      "J'ai appris la plupart de ce que je sais avec mes mains : un été comme stagiaire en mécanique automobile, des go-karts remis en état, un homelab sur un Raspberry Pi, des jeux et ce site web. Loin du clavier, j'entraîne au judo et je joue au soccer."
     ],
     "hint": "Ouvre le coffre à outils et le capot pour voir avec quoi je travaille.",
     "next": "Prochain arrêt : projets",
-    "back": "Retour à l'arcade"
+    "back": "Retour à l'arcade",
+    "quote": {
+      "text": "Rien ne se perd, rien ne se crée, tout se transforme.",
+      "translation": "C'est comme ça que je vois la construction.",
+      "author": "Antoine Lavoisier"
+    }
   },
   "aboutQuick": {
     "eyebrow": "BAIE 02 · EN BREF",
@@ -150,12 +155,13 @@
   },
   "projects": {
     "chip": "~/projets",
-    "title": "Ce que j'ai construit.",
+    "title": "Quêtes principales",
     "subtitle": "Certains finis, d'autres encore au garage.",
     "status": {
       "live": "En ligne",
       "progress": "En cours",
-      "ongoing": "Continu"
+      "ongoing": "Continu",
+      "done": "Terminé"
     },
     "open": "Voir les détails",
     "what": "Ce que c'est",
@@ -170,6 +176,7 @@
     "workshop": "À l'atelier",
     "workshopStatus": {
       "idea": "Idée",
+      "planning": "Planification",
       "prototype": "Prototype",
       "progress": "En cours"
     }
@@ -182,10 +189,27 @@
   },
   "contact": {
     "title": "Contact",
-    "soon": "Bientôt. En attendant : [TODO] courriel."
+    "heading": "On se parle ?",
+    "line": "Stage, projet ou simple question : ma boîte est ouverte.",
+    "dear": "Cher Adel,",
+    "name": "Nom",
+    "email": "Courriel",
+    "message": "Message",
+    "send": "Envoyer",
+    "sending": "Envoi…",
+    "required": "Ce champ est obligatoire.",
+    "invalidEmail": "Entre une adresse courriel valide, comme nom@exemple.com.",
+    "success": "Message envoyé. Je te réponds bientôt.",
+    "error": "Un problème est survenu et le message n'est pas parti. Tu peux m'écrire directement à",
+    "links": "Autres façons de me joindre",
+    "mail": "M'écrire",
+    "github": "GitHub",
+    "linkedin": "LinkedIn",
+    "cv": "CV",
+    "honeypot": "Laisse ce champ vide"
   },
   "aboutPage": {
-    "title": "À propos — Adel",
-    "description": "Adel, étudiant en informatique au Cégep Champlain–Saint-Lambert : moteurs et logiciels, et le plaisir de construire les deux."
+    "title": "À propos · Adel Abane",
+    "description": "Adel Abane, étudiant en informatique au Cégep Champlain–Saint-Lambert : moteurs et logiciels, et le plaisir de construire les deux. Ouvre le coffre à outils et le capot dans un garage 3D."
   }
 }

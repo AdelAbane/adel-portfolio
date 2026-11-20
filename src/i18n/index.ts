@@ -16,7 +16,12 @@ export function localeBase(locale: string | undefined): string {
   return locale === 'fr' ? '/fr/' : '/';
 }
 
-/** The CV in the page's language (the PDFs live in public/cv/) */
+/** The CV's file name in the page's language: exactly as in public/cv/ (URLs are case-sensitive) */
+export function cvFile(locale: string | undefined): string {
+  return locale === 'fr' ? 'Adel-Abane-CV-FR.pdf' : 'Adel-Abane-CV-EN.pdf';
+}
+
+/** Absolute path to the CV in the page's language */
 export function cvHref(locale: string | undefined): string {
-  return locale === 'fr' ? '/cv/Adel-Abane-CV-FR.pdf' : '/cv/Adel-Abane-CV-EN.pdf';
+  return `/cv/${cvFile(locale)}`;
 }

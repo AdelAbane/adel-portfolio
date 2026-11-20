@@ -1,0 +1,215 @@
+---
+import type { Translations } from '../i18n';
+
+interface Props {
+  t: Translations;
+  /** Extra classes from the page (story-card: the homepage's scroll story fades it in) */
+  class?: string;
+}
+
+/*
+ * Lavoisier's line, always in the original French, with a short note in the page's language.
+ * Its own small glass card. It reveals (fade and rise) once it's really on screen: on /about, after
+ * the garage door has opened; on the homepage, the scroll story fades it in and the quote then types
+ * itself out (~1.2s). Screen readers get the whole quote straight away; with reduced motion it's
+ * simply there.
+ */
+const { t, class: className } = Astro.props;
+const quote = t.about.quote;
+---
+
+<figure class:list={['quote-card', className]} data-quote>
+  <blockquote lang="fr" class="quote">
+    <p>
+      <span class="sr-only">{quote.text}</span>
+      <span class="typed" aria-hidden="true" data-text={quote.text}>{quote.text}</span>
+    </p>
+  </blockquote>
+  <figcaption>
+    <p class="note">{quote.translation}</p>
+    <p class="author">— <cite>{quote.author}</cite></p>
+  </figcaption>
+</figure>
+
+<script>
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  for (const card of document.querySelectorAll<HTMLElement>('[data-quote]')) {
+    const typed = card.querySelector<HTMLElement>('.typed')!;
+    const text = typed.dataset.text ?? '';
+    if (reduced.matches) {
+      card.classList.add('is-in');
+      continue;
+    }
+    // Hidden (empty) until it's revealed; the sr-only copy keeps it readable meanwhile
+    typed.textContent = '';
+    card.classList.add('is-waiting');
+
+    /** Really on screen: in view, fully faded in by the scroll story, the garage door gone */
+    const shown = () => {
+      const door = document.querySelector<HTMLElement>('.garage .door');
+      const doorGone = !door || door.hidden || getComputedStyle(door).display === 'none';
+      // On the homepage the scroll story fades the card in: wait until it's fully there
+      const faded = !card.classList.contains('story-card') || Number(getComputedStyle(card).opacity) > 0.95;
+      return doorGone && !document.querySelector('.garage.is-arriving') && faded;
+    };
+
+    let started = false;
+    let watching = 0;
+    const reveal = () => {
+      started = true;
+      card.classList.remove('is-waiting');
+      card.classList.add('is-in');
+      // ~1.2s for the whole line
+      const step = 1200 / text.length;
+      let i = 0;
+      const type = () => {
+        i += 1;
+        typed.textContent = text.slice(0, i);
+        if (i < text.length) window.setTimeout(type, step);
+      };
+      window.setTimeout(type, 250);
+    };
+
+    new IntersectionObserver(
+      ([entry]) => {
+        cancelAnimationFrame(watching);
+        if (!entry.isIntersecting || started) return;
+        const check = () => {
+          if (started) return;
+          if (shown()) reveal();
+          else watching = requestAnimationFrame(check);
+        };
+        check();
+      },
+      { threshold: 0.6 },
+    ).observe(card);
+  }
+</script>
+
+<style>
+  .quote-card {
+    --qc-glass: rgba(10, 22, 48, 0.55);
+    --qc-border: rgba(190, 224, 255, 0.2);
+    --qc-highlight: rgba(255, 255, 255, 0.2);
+    --qc-glow: rgba(92, 200, 255, 0.14);
+    --qc-ink: #eaf2ff;
+    --qc-muted: #a9c4e8;
+    --qc-accent: #5cc8ff;
+    position: relative;
+    max-width: 520px;
+    margin: 0;
+    padding: 26px 28px 20px;
+    border: 1px solid var(--qc-border);
+    border-radius: 24px;
+    background: var(--qc-glass);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    backdrop-filter: blur(18px) saturate(160%);
+    box-shadow:
+      inset 0 1px 0 var(--qc-highlight),
+      inset 0 0 40px var(--qc-glow),
+      0 24px 60px rgba(2, 6, 20, 0.45);
+    color: var(--qc-ink);
+  }
+
+  :global([data-theme='light']) .quote-card {
+    --qc-glass: rgba(255, 255, 255, 0.72);
+    --qc-border: rgba(10, 42, 94, 0.12);
+    --qc-highlight: rgba(255, 255, 255, 0.9);
+    --qc-glow: rgba(92, 200, 255, 0.12);
+    --qc-ink: #0a1a33;
+    --qc-muted: #2e4466;
+    --qc-accent: #0a56b8;
+  }
+
+  /* Big decorative quotation marks in the accent blue */
+  .quote-card::before {
+    content: '“';
+    position: absolute;
+    top: -18px;
+    left: 14px;
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-size: 96px;
+    line-height: 1;
+    color: var(--qc-accent);
+    opacity: 0.9;
+    pointer-events: none;
+  }
+
+  .quote {
+    margin: 0;
+  }
+
+  .quote p {
+    position: relative;
+    margin: 0;
+    padding-left: 30px;
+    /* Room for the whole line, so typing it out never moves anything */
+    min-height: 2.2em;
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-style: italic;
+    font-size: clamp(24px, 2.4vw, 30px);
+    line-height: 1.15;
+  }
+
+  .quote p::after {
+    content: '”';
+    color: var(--qc-accent);
+  }
+
+  figcaption {
+    display: grid;
+    gap: 6px;
+    margin-top: 12px;
+    padding-left: 30px;
+  }
+
+  .note,
+  .author {
+    margin: 0;
+  }
+
+  .note {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--qc-muted);
+  }
+
+  .author {
+    font-size: 12px;
+    color: var(--qc-muted);
+    opacity: 0.8;
+  }
+
+  cite {
+    font-style: normal;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  /* Gentle fade and rise once revealed (the homepage's scroll story fades the card itself) */
+  .quote-card.is-waiting:not(.story-card) {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  .quote-card.is-in:not(.story-card) {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 0.7s ease,
+      transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  /* While it waits, the typed line keeps its height so the card doesn't jump */
+  .typed:empty::before {
+    content: '\200b';
+  }
+</style>

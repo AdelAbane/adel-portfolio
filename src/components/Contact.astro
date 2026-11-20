@@ -1,48 +1,837 @@
 ---
-import type { Translations } from '../i18n';
+import { siGithub } from 'simple-icons';
+import { cvFile, cvHref, type Translations } from '../i18n';
+import { contact } from '../data/contact';
 
 interface Props {
   t: Translations;
 }
 
 const { t } = Astro.props;
+const copy = t.contact;
+const formspree = `https://formspree.io/f/${import.meta.env.PUBLIC_FORMSPREE_ID ?? ''}`;
 ---
 
-<!-- Placeholder until the contact section is designed -->
+<!--
+  Contact: a cozy break from the arcade. A small room at night (a winter afternoon in daylight):
+  a wooden desk by a big window with snow falling, a warm lamp, a steaming mug and a plant. The
+  form is a letter on the desk, sent to Formspree (PUBLIC_FORMSPREE_ID); without JS it posts normally.
+-->
 <section id="contact" class="contact" aria-labelledby="contact-title">
-  <h2 id="contact-title" class="title">{t.contact.title}</h2>
-  <p class="soon">{t.contact.soon}</p>
+  <div class="room" aria-hidden="true">
+    <span class="lamp-light"></span>
+    <div class="desk"></div>
+  </div>
+
+  <div class="inner">
+    <header class="head">
+      <h2 id="contact-title" class="title">{copy.heading}</h2>
+      <p class="line">{copy.line}</p>
+    </header>
+
+    <!-- The big window behind the desk (in the flow, so it never sits under the text) -->
+    <div class="window" aria-hidden="true">
+      <div class="outside"><span class="moon"></span></div>
+      <canvas class="snow"></canvas>
+      <span class="sill-snow"></span>
+    </div>
+
+    <div class="tabletop">
+      <!-- Desk props: a lamp and a plant on the left, the mug by the letter -->
+      <div class="props props-left" aria-hidden="true">
+        <svg class="lamp" viewBox="0 0 120 150" width="120" height="150">
+          <ellipse cx="38" cy="142" rx="30" ry="7" fill="var(--lamp-base)" />
+          <rect x="34" y="132" width="8" height="10" rx="2" fill="var(--lamp-metal)" />
+          <path d="M38 134 L52 74 L92 56" fill="none" stroke="var(--lamp-metal)" stroke-width="6" stroke-linecap="round" />
+          <circle cx="52" cy="74" r="5" fill="var(--lamp-brass)" />
+          <path d="M80 38 L112 58 L96 82 L64 62 Z" fill="var(--lamp-shade)" />
+          <ellipse class="bulb" cx="88" cy="74" rx="11" ry="5" fill="#FFE2B0" transform="rotate(33 88 74)" />
+        </svg>
+        <svg class="plant" viewBox="0 0 80 110" width="80" height="110">
+          <path d="M40 58 C30 40 14 36 8 22 C24 24 36 36 40 56 Z" fill="#4F8A4B" />
+          <path d="M40 58 C46 36 58 26 74 22 C70 38 56 48 41 58 Z" fill="#5FA05A" />
+          <path d="M40 60 C38 40 40 22 44 6 C50 24 48 44 42 60 Z" fill="#3F7A3D" />
+          <path d="M18 62 H62 L56 104 H24 Z" fill="#B5653A" />
+          <rect x="15" y="58" width="50" height="9" rx="2" fill="#C97A4B" />
+        </svg>
+      </div>
+
+      <!-- The letter -->
+      <div class="letter-wrap">
+        <form class="letter" action={formspree} method="POST" novalidate>
+          <p class="dear" aria-hidden="true">{copy.dear}</p>
+          <div class="field">
+            <label for="contact-name">{copy.name}</label>
+            <input id="contact-name" name="name" type="text" autocomplete="name" required aria-describedby="contact-name-error" />
+            <p id="contact-name-error" class="error" hidden>{copy.required}</p>
+          </div>
+          <div class="field">
+            <label for="contact-email">{copy.email}</label>
+            <input id="contact-email" name="email" type="email" autocomplete="email" required aria-describedby="contact-email-error" />
+            <p id="contact-email-error" class="error" hidden data-required={copy.required} data-invalid={copy.invalidEmail}>{copy.required}</p>
+          </div>
+          <div class="field">
+            <label for="contact-message">{copy.message}</label>
+            <textarea id="contact-message" name="message" rows="5" required aria-describedby="contact-message-error"></textarea>
+            <p id="contact-message-error" class="error" hidden>{copy.required}</p>
+          </div>
+          <!-- Honeypot: people never see or fill it; bots do, and Formspree drops those -->
+          <div class="honeypot" aria-hidden="true">
+            <label for="contact-gotcha">{copy.honeypot}</label>
+            <input id="contact-gotcha" name="_gotcha" type="text" tabindex="-1" autocomplete="off" />
+          </div>
+          <button class="send" type="submit" data-label={copy.send} data-sending={copy.sending}>
+            {copy.send} <span aria-hidden="true">✉</span>
+          </button>
+        </form>
+        <div class="status" role="status" aria-live="polite">
+          <p class="sent" hidden>
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22"><path fill="none" stroke="currentColor" stroke-width="2" d="M3 6h18v12H3z M3 6l9 7 9-7" /></svg>
+            {copy.success}
+          </p>
+          <p class="failed" hidden>{copy.error} <a href={`mailto:${contact.email}`}>{contact.email}</a>.</p>
+        </div>
+        <svg class="mug" viewBox="0 0 70 70" width="70" height="70" aria-hidden="true">
+          <path d="M50 30 h6 a9 9 0 0 1 0 18 h-6" fill="none" stroke="var(--mug)" stroke-width="5" />
+          <rect x="10" y="22" width="42" height="42" rx="7" fill="var(--mug)" />
+          <rect x="10" y="34" width="42" height="7" fill="#2B6CDB" />
+          <ellipse cx="31" cy="23" rx="20" ry="4" fill="#6B3F24" />
+        </svg>
+        <span class="steam" aria-hidden="true"><span></span><span></span><span></span></span>
+      </div>
+
+      <!-- Other ways: small things on the desk -->
+      <nav class="items" aria-label={copy.links}>
+        <a class="item" href={`mailto:${contact.email}`}>
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 6h18v12H3z M3 6l9 7 9-7" /></svg>
+          <span>{copy.mail}</span>
+        </a>
+        <a class="item" href={contact.github} target="_blank" rel="noopener">
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d={siGithub.path} /></svg>
+          <span>{copy.github}</span>
+        </a>
+        <a class="item" href={contact.linkedin} target="_blank" rel="noopener">
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c1-4 4.5-6 8-6s7 2 8 6" /></svg>
+          <span>{copy.linkedin}</span>
+        </a>
+        <a class="item" href={cvHref(Astro.currentLocale)} download={cvFile(Astro.currentLocale)} aria-label={t.header.cvLabel}>
+          <svg aria-hidden="true" width="14" height="18" viewBox="0 0 8 10" shape-rendering="crispEdges"><path fill="currentColor" d="M3 0h2v5h2v1H6v1H5v1H3V7H2V6H1V5h2zM0 9h8v1H0z"></path></svg>
+          <span>{copy.cv}</span>
+        </a>
+      </nav>
+    </div>
+  </div>
 </section>
 
+<script>
+  import { getSettings } from '../lib/quality';
+
+  const section = document.querySelector<HTMLElement>('.contact');
+  if (section) {
+    initSnow(section);
+    initLetter(section);
+    // Off screen: the steam and the snow hold still
+    new IntersectionObserver(([entry]) => section.classList.toggle('is-idle', !entry.isIntersecting)).observe(section);
+  }
+
+  /** Gentle snow in the window: ~60 flakes (30, slower, on phones); one still frame on the low tier */
+  function initSnow(section: HTMLElement) {
+    const canvas = section.querySelector<HTMLCanvasElement>('.snow');
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!canvas || reduced) return;
+    const ctx = canvas.getContext('2d')!;
+    const phone = window.matchMedia('(max-width: 767px)').matches;
+    const still = getSettings().tier === 'low';
+    const count = phone ? 30 : 60;
+    const speed = phone ? 0.6 : 1;
+    let w = 0;
+    let h = 0;
+    const flakes = Array.from({ length: count }, () => ({
+      x: Math.random(),
+      y: Math.random(),
+      r: 0.8 + Math.random() * 2,
+      v: 0.012 + Math.random() * 0.02,
+      sway: Math.random() * Math.PI * 2,
+    }));
+
+    const resize = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = canvas.clientWidth;
+      h = canvas.clientHeight;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      draw(0);
+    };
+
+    function draw(dt: number) {
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      for (const f of flakes) {
+        f.y += f.v * dt * speed;
+        f.sway += dt * 0.8;
+        if (f.y > 1.02) {
+          f.y = -0.02;
+          f.x = Math.random();
+        }
+        ctx.beginPath();
+        ctx.arc(f.x * w + Math.sin(f.sway) * 6, f.y * h, f.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    new ResizeObserver(resize).observe(canvas);
+    if (still) return;
+
+    let last = 0;
+    let frame = 0;
+    const loop = (now: number) => {
+      const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
+      last = now;
+      draw(dt);
+      frame = requestAnimationFrame(loop);
+    };
+    const run = (on: boolean) => {
+      cancelAnimationFrame(frame);
+      last = 0;
+      if (on) frame = requestAnimationFrame(loop);
+    };
+    let visible = false;
+    new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      run(visible && !document.hidden);
+    }).observe(canvas);
+    document.addEventListener('visibilitychange', () => run(visible && !document.hidden));
+  }
+
+  /** The letter: inline validation, then Formspree; on success it folds and slides off the desk */
+  function initLetter(section: HTMLElement) {
+    const form = section.querySelector<HTMLFormElement>('.letter');
+    if (!form) return;
+    const send = form.querySelector<HTMLButtonElement>('.send')!;
+    const sent = section.querySelector<HTMLElement>('.sent')!;
+    const failed = section.querySelector<HTMLElement>('.failed')!;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    const check = (field: HTMLInputElement | HTMLTextAreaElement) => {
+      const error = document.getElementById(field.getAttribute('aria-describedby')!)!;
+      const value = field.value.trim();
+      let message = '';
+      if (!value) message = error.dataset.required ?? error.textContent ?? '';
+      else if (field.type === 'email' && !EMAIL.test(value)) message = error.dataset.invalid ?? '';
+      if (message) error.textContent = message;
+      error.hidden = !message;
+      field.setAttribute('aria-invalid', String(!!message));
+      return !message;
+    };
+
+    const fields = [...form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[required]')];
+    // Check a field when leaving it, and again as it's corrected
+    for (const field of fields) {
+      field.addEventListener('blur', () => field.value && check(field));
+      field.addEventListener('input', () => field.getAttribute('aria-invalid') === 'true' && check(field));
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const results = fields.map(check);
+      if (results.includes(false)) {
+        fields[results.indexOf(false)].focus();
+        return;
+      }
+      failed.hidden = true;
+      send.disabled = true;
+      send.textContent = send.dataset.sending ?? '';
+      try {
+        const response = await fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' } });
+        if (!response.ok) throw new Error(String(response.status));
+        const done = () => {
+          form.hidden = true;
+          sent.hidden = false;
+        };
+        if (reduced.matches) done();
+        else {
+          // Folds into an envelope and slides off the desk (0.8s), then the note appears
+          form.classList.add('is-sent');
+          form.addEventListener('animationend', done, { once: true });
+          window.setTimeout(done, 1200);
+        }
+      } catch {
+        failed.hidden = false;
+        send.disabled = false;
+        send.innerHTML = `${send.dataset.label} <span aria-hidden="true">✉</span>`;
+      }
+    });
+  }
+</script>
+
 <style>
+  /* Its own warm palette: night (default) and a winter afternoon (light) */
   .contact {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    padding: 120px 24px 160px;
-    background: #050b1a;
-    color: #e6f3ff;
-    text-align: center;
+    --wall-top: #241914;
+    --wall-bottom: #1a120e;
+    --ink: #f5e9da;
+    --ink-soft: #d9c5ad;
+    --sky-top: #0b1530;
+    --sky-bottom: #22345e;
+    --frame: #5a3b26;
+    --frame-light: #6f4a30;
+    --wood: #6b4428;
+    --wood-top: #8a5a36;
+    --wood-dark: #4a2e1a;
+    --glow: rgba(255, 186, 110, 0.42);
+    --lamp-metal: #2c2a2e;
+    --lamp-base: #232126;
+    --lamp-brass: #c08a3e;
+    --lamp-shade: #c08a3e;
+    --mug: #ece1cf;
+    --item: rgba(255, 244, 228, 0.08);
+    --item-border: rgba(255, 226, 190, 0.2);
+    position: relative;
+    padding: 110px 24px 0;
+    overflow: hidden;
+    color: var(--ink);
+    isolation: isolate;
   }
 
   :global([data-theme='light']) .contact {
-    background: #dcebfb;
-    color: #0a1a33;
+    --wall-top: #f2e6d6;
+    --wall-bottom: #e8d8c4;
+    --ink: #3a2a1f;
+    --ink-soft: #6b5442;
+    --sky-top: #b9d6f0;
+    --sky-bottom: #eaf3fb;
+    --frame: #a8794f;
+    --frame-light: #bd8c60;
+    --wood: #a87a4f;
+    --wood-top: #c0915f;
+    --wood-dark: #8a613c;
+    --glow: rgba(255, 210, 150, 0.22);
+    --lamp-metal: #4a4650;
+    --lamp-base: #3e3a44;
+    --item: rgba(255, 255, 255, 0.45);
+    --item-border: rgba(90, 60, 30, 0.18);
+  }
+
+  /* ---------- The room ---------- */
+
+  .room {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(var(--wall-top), var(--wall-bottom));
+  }
+
+  .window {
+    position: relative;
+    width: min(980px, 100%);
+    height: 380px;
+    /* The letter stands in front of its lower half */
+    margin: 0 auto -190px;
+    overflow: hidden;
+    border: 14px solid var(--frame);
+    border-bottom-width: 18px;
+    border-radius: 6px;
+    box-shadow:
+      inset 0 0 0 4px var(--frame-light),
+      0 20px 40px rgba(0, 0, 0, 0.25);
+  }
+
+  /* Mullions: a 3 × 2 grid of panes */
+  .window::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(90deg, transparent calc(33.33% - 4px), var(--frame) calc(33.33% - 4px) calc(33.33% + 4px), transparent calc(33.33% + 4px)),
+      linear-gradient(90deg, transparent calc(66.66% - 4px), var(--frame) calc(66.66% - 4px) calc(66.66% + 4px), transparent calc(66.66% + 4px)),
+      linear-gradient(transparent calc(50% - 4px), var(--frame) calc(50% - 4px) calc(50% + 4px), transparent calc(50% + 4px));
+  }
+
+  .outside {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(var(--sky-top), var(--sky-bottom));
+  }
+
+  /* Snowy rooftops far away */
+  .outside::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 30%;
+    background:
+      radial-gradient(ellipse 30% 60% at 15% 100%, rgba(235, 242, 252, 0.9) 98%, transparent 100%),
+      radial-gradient(ellipse 35% 50% at 60% 100%, rgba(225, 235, 248, 0.85) 98%, transparent 100%),
+      radial-gradient(ellipse 25% 70% at 95% 100%, rgba(235, 242, 252, 0.9) 98%, transparent 100%);
+  }
+
+  .moon {
+    position: absolute;
+    top: 18%;
+    right: 14%;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: #f4ecd6;
+    box-shadow: 0 0 40px rgba(244, 236, 214, 0.5);
+  }
+
+  :global([data-theme='light']) .moon {
+    background: #fff8e8;
+    box-shadow: 0 0 60px rgba(255, 248, 232, 0.9);
+    opacity: 0.8;
+  }
+
+  .snow {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .sill-snow {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 8px;
+    border-radius: 8px 8px 0 0;
+    background: #f4f8ff;
+  }
+
+  /* The lamp's warm pool of light on the desk and the wall */
+  /* Centred on the lamp; closest-side keeps the fade inside the box, so it has no edges */
+  .lamp-light {
+    position: absolute;
+    bottom: -140px;
+    left: max(0px, calc(50% - 760px));
+    width: 760px;
+    height: 560px;
+    background: radial-gradient(closest-side, var(--glow), transparent);
+    mix-blend-mode: screen;
+  }
+
+  :global([data-theme='light']) .lamp-light {
+    mix-blend-mode: normal;
+  }
+
+  .desk {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 230px;
+    background:
+      repeating-linear-gradient(92deg, transparent 0 60px, rgba(0, 0, 0, 0.06) 60px 61px, transparent 61px 130px),
+      linear-gradient(var(--wood), var(--wood-dark));
+    border-top: 14px solid var(--wood-top);
+    box-shadow: 0 -2px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  /* ---------- Content ---------- */
+
+  .inner {
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  .head {
+    margin-bottom: 36px;
+    text-align: center;
   }
 
   .title {
-    margin: 0;
+    margin: 0 0 10px;
     font-family: 'Inter Tight', var(--font-body);
     font-weight: 800;
-    font-size: clamp(36px, 5vw, 56px);
+    font-size: clamp(40px, 6vw, 72px);
     letter-spacing: -0.04em;
+    color: var(--ink);
   }
 
-  .soon {
+  .line {
     margin: 0;
+    font-size: 18px;
+    color: var(--ink-soft);
+  }
+
+  .tabletop {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr minmax(0, 520px) 1fr;
+    align-items: end;
+    gap: 28px;
+    padding-bottom: 70px;
+  }
+
+  .props-left {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    justify-self: start;
+  }
+
+  .lamp .bulb {
+    filter: drop-shadow(0 0 10px #ffd9a0);
+  }
+
+  :global([data-theme='light']) .lamp .bulb {
+    filter: none;
+    opacity: 0.8;
+  }
+
+  /* ---------- The letter ---------- */
+
+  .letter-wrap {
+    position: relative;
+  }
+
+  .letter {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 28px 30px 26px;
+    border-radius: 3px;
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(255, 255, 255, 0.55), transparent 60%),
+      linear-gradient(#fbf6ec, #f4ecdc);
+    box-shadow:
+      0 1px 0 rgba(0, 0, 0, 0.05),
+      0 18px 40px rgba(0, 0, 0, 0.35);
+    color: #2b2118;
+    transform: rotate(-1.2deg);
+    transform-origin: 50% 100%;
+  }
+
+  .dear {
+    margin: 0 0 2px;
+    font-family: 'Caveat', cursive;
+    font-weight: 600;
+    font-size: 40px;
+    line-height: 1;
+    color: #1f3f7a;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .field label {
     font-family: var(--font-mono);
-    font-size: 14px;
-    opacity: 0.75;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #8a6f52;
+  }
+
+  .field input,
+  .field textarea {
+    width: 100%;
+    padding: 6px 2px;
+    border: 0;
+    border-bottom: 1.5px solid #cdbb9e;
+    border-radius: 0;
+    background: transparent;
+    font: 17px/1.5 var(--font-body);
+    color: #2b2118;
+  }
+
+  /* Ruled lines under the message */
+  .field textarea {
+    resize: vertical;
+    min-height: 140px;
+    line-height: 28px;
+    background: repeating-linear-gradient(transparent 0 27px, #e2d4bc 27px 28px);
+    background-attachment: local;
+  }
+
+  .field input:focus,
+  .field textarea:focus {
+    outline: none;
+    border-bottom-color: #2b6cdb;
+    box-shadow: 0 2px 0 #2b6cdb;
+  }
+
+  .field [aria-invalid='true'] {
+    border-bottom-color: #b42318;
+  }
+
+  .error {
+    margin: 2px 0 0;
+    font-size: 13px;
+    color: #b42318;
+  }
+
+  .honeypot {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .send {
+    align-self: flex-end;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    margin-top: 4px;
+    padding: 0 22px;
+    border: 0;
+    border-radius: 999px;
+    background: #b4532a;
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.2);
+    color: #fff8ef;
+    font: 600 16px 'Inter Tight', var(--font-body);
+    cursor: pointer;
+  }
+
+  .send:hover {
+    background: #9d4522;
+  }
+
+  .send:disabled {
+    opacity: 0.7;
+    cursor: progress;
+  }
+
+  .send:focus-visible,
+  .item:focus-visible,
+  .failed a:focus-visible {
+    outline: 2px solid #2b6cdb;
+    outline-offset: 3px;
+  }
+
+  /* Sent: folded into an envelope, then off the desk to the right */
+  .letter.is-sent {
+    animation: fold-away 0.8s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+  }
+
+  .status p {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: 18px 20px;
+    border-radius: 3px;
+    background: #fbf6ec;
+    color: #2b2118;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+  }
+
+  .status p[hidden] {
+    display: none;
+  }
+
+  .failed {
+    margin-top: 12px !important;
+    background: #fdecea !important;
+  }
+
+  .failed a {
+    color: #1f3f7a;
+    font-weight: 600;
+  }
+
+  /* The mug, with steam rising */
+  .mug {
+    position: absolute;
+    right: -78px;
+    bottom: 0;
+  }
+
+  .steam {
+    position: absolute;
+    right: -58px;
+    bottom: 72px;
+    width: 30px;
+    height: 60px;
+  }
+
+  .steam span {
+    position: absolute;
+    bottom: 0;
+    width: 8px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(255, 250, 240, 0.35);
+    filter: blur(4px);
+    animation: steam 3.2s ease-in-out infinite;
+  }
+
+  .steam span:nth-child(1) {
+    left: 2px;
+  }
+
+  .steam span:nth-child(2) {
+    left: 12px;
+    animation-delay: 1s;
+  }
+
+  .steam span:nth-child(3) {
+    left: 20px;
+    animation-delay: 2s;
+  }
+
+  :global([data-theme='light']) .steam span {
+    background: rgba(120, 100, 80, 0.25);
+  }
+
+  .contact.is-idle .steam span {
+    animation-play-state: paused;
+  }
+
+  /* ---------- Other ways to reach me ---------- */
+
+  .items {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    justify-self: end;
+    padding-bottom: 6px;
+  }
+
+  .item {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 16px;
+    border: 1px solid var(--item-border);
+    border-radius: 12px;
+    background: var(--item);
+    color: var(--ink);
+    font-size: 15px;
+    font-weight: 500;
+    text-decoration: none;
+    transform: rotate(var(--tilt, 0deg));
+    transition: transform 0.2s ease;
+  }
+
+  .item:nth-child(1) {
+    --tilt: -2deg;
+  }
+
+  .item:nth-child(2) {
+    --tilt: 1.5deg;
+  }
+
+  .item:nth-child(3) {
+    --tilt: -1deg;
+  }
+
+  .item:nth-child(4) {
+    --tilt: 2deg;
+  }
+
+  .item:hover {
+    transform: rotate(0deg) translateY(-2px);
+  }
+
+  /* ---------- Phones: everything stacks; the window shrinks ---------- */
+
+  @media (max-width: 900px) {
+    .contact {
+      padding: 88px 16px 0;
+    }
+
+    .window {
+      height: 240px;
+      margin-bottom: -60px;
+      border-width: 10px;
+    }
+
+    .head {
+      margin-bottom: 28px;
+    }
+
+    .tabletop {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 20px;
+      padding-bottom: 40px;
+    }
+
+    .props-left {
+      display: none;
+    }
+
+    .letter {
+      padding: 22px 20px 20px;
+    }
+
+    .mug {
+      right: 6px;
+      bottom: -50px;
+      width: 52px;
+      height: 52px;
+      z-index: 1;
+    }
+
+    .steam {
+      right: 16px;
+      bottom: 0;
+    }
+
+    .items {
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-self: stretch;
+      justify-content: center;
+    }
+
+    .desk {
+      height: 260px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .snow,
+    .steam {
+      display: none;
+    }
+
+    .letter.is-sent {
+      animation: none;
+    }
+
+    .item {
+      transition: none;
+    }
+  }
+
+  @keyframes steam {
+    0% {
+      transform: translateY(0) scaleX(1);
+      opacity: 0;
+    }
+    30% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-40px) scaleX(1.6);
+      opacity: 0;
+    }
+  }
+
+  @keyframes fold-away {
+    0% {
+      transform: rotate(-1.2deg);
+    }
+    45% {
+      transform: rotate(-1.2deg) perspective(800px) rotateX(70deg) scaleY(0.45);
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(140%) rotate(10deg) perspective(800px) rotateX(70deg) scaleY(0.45);
+      opacity: 0;
+    }
   }
 </style>
