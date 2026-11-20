@@ -10,9 +10,12 @@ interface Props {
   image?: string;
   /** Keep the page out of search results (the 404) */
   noindex?: boolean;
+  /** Share previews' title and description, when they differ from the search ones */
+  shareTitle?: string;
+  shareDescription?: string;
 }
 
-const { title, description = '', lang = 'en', image, noindex = false } = Astro.props;
+const { title, description = '', lang = 'en', image, noindex = false, shareTitle, shareDescription } = Astro.props;
 ---
 
 <!doctype html>
@@ -27,7 +30,7 @@ const { title, description = '', lang = 'en', image, noindex = false } = Astro.p
     <meta name="theme-color" content="#0A1428" />
     <meta name="generator" content={Astro.generator} />
 
-    <SEO title={title} description={description} lang={lang} image={image} noindex={noindex} />
+    <SEO {title} {description} {lang} {image} {noindex} {shareTitle} {shareDescription} />
 
     <!-- Apply saved theme before first paint to avoid a flash; flag JS so phones can swap the nav for the menu -->
     <script is:inline>

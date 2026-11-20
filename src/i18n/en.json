@@ -1,7 +1,9 @@
 {
   "meta": {
-    "title": "Adel Abane — Computer Science Student & Developer | Montréal",
-    "description": "Computer science student in Montréal building games, a homelab and 3D web experiences. Explore my projects, step into my garage, and download my CV."
+    "title": "Adel Abane — CS Student & Developer in Montréal",
+    "shareTitle": "Adel Abane — Computer Science Student & Developer | Montréal",
+    "description": "Computer science student in Montréal building games, a homelab and 3D web experiences. Explore my projects, step into my garage, and download my CV.",
+    "shareDescription": "CS student in Montréal building games, a homelab and 3D web experiences. See my projects and grab my CV."
   },
   "header": {
     "navLabel": "Main",
@@ -210,6 +212,7 @@
   },
   "aboutPage": {
     "title": "About Adel Abane — Cars, Code and How Things Work",
-    "description": "Step into my garage: who I am, the tools I work with, and why I like knowing how things work, from engines and electronics to software."
+    "description": "Step into my garage: who I am, the tools I work with, and why I like knowing how things work, from engines and electronics to software.",
+    "shareDescription": "Step into my garage: who I am, my tools, and why I love knowing how things work."
   }
 }

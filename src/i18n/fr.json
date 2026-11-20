@@ -1,7 +1,9 @@
 {
   "meta": {
-    "title": "Adel Abane — Étudiant en informatique et développeur | Montréal",
-    "description": "Étudiant en informatique à Montréal : jeux, homelab et expériences web 3D. Découvre mes projets, entre dans mon garage et télécharge mon CV."
+    "title": "Adel Abane — Étudiant en informatique à Montréal",
+    "shareTitle": "Adel Abane — Étudiant en informatique et développeur | Montréal",
+    "description": "Étudiant en informatique à Montréal : jeux, homelab et expériences web 3D. Découvre mes projets, entre dans mon garage et télécharge mon CV.",
+    "shareDescription": "Étudiant en informatique à Montréal : jeux, homelab et web 3D. Découvre mes projets et mon CV."
   },
   "header": {
     "navLabel": "Principale",
@@ -210,6 +212,7 @@
   },
   "aboutPage": {
     "title": "À propos d'Adel Abane — Voitures, code et mécanique",
-    "description": "Entre dans mon garage : qui je suis, les outils avec lesquels je travaille et pourquoi j'aime comprendre comment tout fonctionne, du moteur au logiciel."
+    "description": "Entre dans mon garage : qui je suis, les outils avec lesquels je travaille et pourquoi j'aime comprendre comment tout fonctionne, du moteur au logiciel.",
+    "shareDescription": "Entre dans mon garage : qui je suis, mes outils et ma passion pour comprendre comment tout fonctionne."
   }
 }

@@ -10,7 +10,7 @@ import { getTranslations } from '../../i18n';
 const t = getTranslations(Astro.currentLocale);
 ---
 
-<Base title={t.meta.title} description={t.meta.description} lang="fr">
+<Base title={t.meta.title} description={t.meta.description} shareTitle={t.meta.shareTitle} shareDescription={t.meta.shareDescription} lang="fr">
   <Header t={t} />
   <main>
     <Hero t={t} />

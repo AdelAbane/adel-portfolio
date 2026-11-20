@@ -12,9 +12,14 @@ interface Props {
   image?: string;
   /** Out of search results (the 404): no canonical or alternates either */
   noindex?: boolean;
+  /** For share previews, when they differ from the search title and description (shorter, punchier) */
+  shareTitle?: string;
+  shareDescription?: string;
 }
 
 const { title, description, lang, image, noindex = false } = Astro.props;
+const shareTitle = Astro.props.shareTitle ?? title;
+const shareDescription = Astro.props.shareDescription ?? description;
 
 const absolute = (path: string) => new URL(path, Astro.site).href;
 const canonical = absolute(Astro.url.pathname);
@@ -39,17 +44,17 @@ const otherLocale = lang === 'fr' ? 'en_CA' : 'fr_CA';
 
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Adel Abane" />
-<meta property="og:title" content={title} />
-<meta property="og:description" content={description} />
+<meta property="og:title" content={shareTitle} />
+<meta property="og:description" content={shareDescription} />
 <meta property="og:url" content={canonical} />
 <meta property="og:image" content={shareImage} />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:image:alt" content={title} />
+<meta property="og:image:alt" content={shareTitle} />
 <meta property="og:locale" content={locale} />
 <meta property="og:locale:alternate" content={otherLocale} />
 
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content={title} />
-<meta name="twitter:description" content={description} />
+<meta name="twitter:title" content={shareTitle} />
+<meta name="twitter:description" content={shareDescription} />
 <meta name="twitter:image" content={shareImage} />

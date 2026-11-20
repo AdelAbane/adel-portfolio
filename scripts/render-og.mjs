@@ -97,7 +97,7 @@ try {
     if (shot.about) {
       // The 3D garage with its car in, and none of the page's UI
       await page.waitForFunction(() => document.querySelector('.garage')?.classList.contains('is-car-in'), null, { timeout: 30000 });
-      await page.addStyleTag({ content: '.site-header, .garage .layer:not(.room), .garage .bottom { visibility: hidden !important } .room-view::after { display: none !important }' });
+      await page.addStyleTag({ content: '.site-header, .garage .layer:not(.room), .garage .bottom, .garage-quote { visibility: hidden !important } .room-view::after { display: none !important }' });
       await page.mouse.move(600, 315);
       await page.waitForTimeout(2500);
     } else {
@@ -115,12 +115,24 @@ try {
     await page.evaluate(([code, y]) => {
       // Captions sit inside the cropped frame
       const holder = document.createElement('div');
+      holder.id = 'og-frame';
       holder.style.cssText = `position: absolute; left: 0; top: ${y}px; width: 1200px; height: 630px; z-index: 9999; pointer-events: none`;
       document.body.append(holder);
       const before = document.body.lastElementChild;
       new Function(code)();
       holder.append(document.body.lastElementChild === before ? before : document.body.lastElementChild);
     }, [caption(captions[shot.lang], shot.about ? 'top' : 'bottom'), clip.y]);
+    // The address, small, in the bottom-right corner
+    await page.evaluate(() => {
+      const mark = document.createElement('div');
+      mark.textContent = 'adelabane.com';
+      mark.style.cssText = [
+        'position: absolute', 'right: 26px', 'bottom: 20px', 'padding: 6px 12px', 'border-radius: 999px',
+        'background: rgba(5, 11, 26, 0.55)', 'border: 1px solid rgba(190, 224, 255, 0.18)',
+        'color: rgba(234, 242, 255, 0.92)', 'font: 500 17px "JetBrains Mono", ui-monospace, monospace', 'letter-spacing: 0.02em',
+      ].join(';');
+      document.getElementById('og-frame').append(mark);
+    });
     await page.waitForTimeout(300);
     const png = await page.screenshot({ type: 'png', clip });
     const info = await sharp(png).jpeg({ quality: 86, mozjpeg: true }).toFile(path.join(out, `${shot.name}.jpg`));
